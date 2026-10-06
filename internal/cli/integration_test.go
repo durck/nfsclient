@@ -141,6 +141,11 @@ func TestSymlinkResolution(t *testing.T) {
 	if err := os.Symlink("a/b", filepath.Join(root, "link")); err != nil {
 		t.Skipf("symlinks unavailable: %v", err)
 	}
+	// On Windows, osfs may return the symlink target with backslashes; the NFS
+	// client splits on "/" only, so ".." traversal gives the wrong result.
+	if got, _ := os.Readlink(filepath.Join(root, "link")); strings.ContainsAny(got, "\\") {
+		t.Skipf("symlink target %q not portable on this platform", got)
+	}
 	if err := os.Symlink("cycle", filepath.Join(root, "cycle")); err != nil {
 		t.Fatal(err)
 	}

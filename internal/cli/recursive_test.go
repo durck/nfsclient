@@ -125,6 +125,16 @@ func recursiveMetadataFlow(t *testing.T, s *session.Session, hardlinks bool) {
 			t.Fatal("link round trip", target, err)
 		}
 	}
+	// Restore write permission on result/sub so t.TempDir cleanup can remove it.
+	// GetTreeWithOptions preserves mode (0550 → no write), which blocks RemoveAll.
+	if opts.Mode {
+		_ = filepath.WalkDir(filepath.Join(local, "result"), func(path string, d os.DirEntry, err error) error {
+			if err == nil && d.IsDir() {
+				_ = os.Chmod(path, 0700)
+			}
+			return nil
+		})
+	}
 	first, err := os.Stat(filepath.Join(local, "result", "sub", "file"))
 	if err != nil {
 		t.Fatal(err)
@@ -180,6 +190,11 @@ func TestRecursiveLinksAndMergeRefusal(t *testing.T) {
 	for name, target := range map[string]string{"link": "target", "dangling": "missing", "loop": ".", "outside": "../../outside"} {
 		if err := os.Symlink(target, filepath.Join(source, name)); err != nil {
 			t.Skipf("OS symlink privilege unavailable: %v", err)
+		}
+		// On Windows, directory symlinks may be expanded to absolute paths on readback,
+		// producing backslash targets that portableTreeLink correctly rejects.
+		if got, rerr := os.Readlink(filepath.Join(source, name)); rerr != nil || strings.ContainsAny(got, "\\\x00") {
+			t.Skipf("symlink target %q reads back as %q (not portable): %v", target, got, rerr)
 		}
 	}
 	ctx := context.Background()
