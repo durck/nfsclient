@@ -110,10 +110,14 @@ func NewCommand(in io.Reader, out, errOut io.Writer) *cobra.Command {
 			printBanner(out, color)
 		}
 		fmt.Fprint(out, "  Browse NFS shares without mounting them. Windows + Linux.\n\n")
-		fmt.Fprintln(out, paint(color, bold, "Usage:")+"\n  nfsclient HOST [flags]\n")
-		fmt.Fprint(out, "  nfsclient offload-state inspect ABSOLUTE_FILE\n  nfsclient offload-state ack ABSOLUTE_FILE OPERATION_ID --server-quiesced --destination-verified\n\n")
-		fmt.Fprint(out, "  nfsclient block-state inspect ABSOLUTE_FILE\n  nfsclient block-state ack ABSOLUTE_FILE OPERATION_ID --storage-quiesced --destination-verified\n\n")
-		fmt.Fprintln(out, paint(color, bold, "Examples:")+"\n  nfsclient nfs.example.test\n  nfsclient nfs.example.test --export /data\n  nfsclient nfs.example.test -e /data -c 'ls'\n")
+		fmt.Fprintln(out, paint(color, bold, "Usage:")+"\n  nfsclient HOST [flags]\n  nfsclient <command> [flags]\n")
+		fmt.Fprintln(out, paint(color, bold, "Commands:")+
+			"\n  scan           "+paint(color, muted, "Scan NFS servers for exposed exports and vulnerabilities")+
+			"\n  offload-state  "+paint(color, muted, "Inspect or acknowledge local offload crash evidence")+
+			"\n  block-state    "+paint(color, muted, "Inspect block crash evidence without contacting NFS or storage")+
+			"\n  lock-state     "+paint(color, muted, "Inspect durable lock evidence offline")+
+			"\n")
+		fmt.Fprintln(out, paint(color, bold, "Examples:")+"\n  nfsclient nfs.example.test\n  nfsclient nfs.example.test --export /data\n  nfsclient nfs.example.test -e /data -c 'ls'\n  nfsclient scan 192.168.1.0/24\n")
 		fmt.Fprintln(out, paint(color, bold, "In the shell:")+"\n  ls · cd · cat · hex · get · put · chmod · exports · help\n")
 		fmt.Fprintln(out, paint(color, bold, "Flags:"))
 		fmt.Fprint(out, cmd.Flags().FlagUsagesWrapped(96))

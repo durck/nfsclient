@@ -56,13 +56,13 @@ returns NFS status 13 (permission denied) on mount, the export is marked
 IP_RESTRICTED. The advertised client list from showmount is also shown.
 
 AUTH_SYS example:
-  nfs-viewer scan 192.168.1.0/24 --uid 0
+  nfsclient scan 192.168.1.0/24 --uid 0
 
 Kerberos example (keytab):
-  nfs-viewer scan 192.168.1.0/24 --sec krb5 --principal user@CORP.LOCAL --keytab user.keytab
+  nfsclient scan 192.168.1.0/24 --sec krb5 --principal user@CORP.LOCAL --keytab user.keytab
 
 Kerberos example (password):
-  nfs-viewer scan 192.168.1.0/24 --sec krb5 --principal user --domain CORP.LOCAL --password Secret123`,
+  nfsclient scan 192.168.1.0/24 --sec krb5 --principal user --domain CORP.LOCAL --password Secret123`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 && file == "" {
 				return fmt.Errorf("specify at least one target or use --file")

@@ -242,7 +242,7 @@ func section(w io.Writer, title string, color bool) {
 func printBanner(w io.Writer, color bool) {
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, paint(color, warm, `   _  _ ___ ___`))
-	fmt.Fprintln(w, paint(color, warm, `  | \| | __/ __|`)+"  "+paint(color, bold, "viewer"))
+	fmt.Fprintln(w, paint(color, warm, `  | \| | __/ __|`)+"  "+paint(color, bold, "client"))
 	fmt.Fprintln(w, paint(color, warm, `  | .`+"`"+` | _|\__ \`)+"  "+paint(color, muted, "© durck"))
 	fmt.Fprintln(w, paint(color, warm, `  |_|\_|_| |___/`))
 	fmt.Fprintln(w)
