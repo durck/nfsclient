@@ -25,7 +25,7 @@ func NewCommand(in io.Reader, out, errOut io.Writer) *cobra.Command {
 	cmd.SetIn(in)
 	cmd.SetOut(out)
 	cmd.SetErr(errOut)
-	cmd.AddCommand(newOffloadStateCommand(out), newBlockStateCommand(out), newLockStateCommand(out))
+	cmd.AddCommand(newOffloadStateCommand(out), newBlockStateCommand(out), newLockStateCommand(out), newScanCommand(out))
 	f := cmd.Flags()
 	f.StringVarP(&export, "export", "e", "", "Export to select; otherwise try advertised exports in order")
 	f.StringVar(&cfg.Version, "nfs-version", "auto", "NFS version: auto, 2, 3, 4.0, 4.1, 4.2")
