@@ -125,16 +125,15 @@ func recursiveMetadataFlow(t *testing.T, s *session.Session, hardlinks bool) {
 			t.Fatal("link round trip", target, err)
 		}
 	}
-	// Restore write permission on result/sub so t.TempDir cleanup can remove it.
-	// GetTreeWithOptions preserves mode (0550 → no write), which blocks RemoveAll.
-	if opts.Mode {
-		_ = filepath.WalkDir(filepath.Join(local, "result"), func(path string, d os.DirEntry, err error) error {
-			if err == nil && d.IsDir() {
-				_ = os.Chmod(path, 0700)
-			}
-			return nil
-		})
-	}
+	// Restore write permission on all local dirs so t.TempDir cleanup can remove them.
+	// Both source and result have restricted modes (0550/0440) set by the test; without
+	// this, RemoveAll fails with "permission denied" on non-writable directories.
+	_ = filepath.WalkDir(local, func(path string, d os.DirEntry, err error) error {
+		if err == nil && d.IsDir() {
+			_ = os.Chmod(path, 0700)
+		}
+		return nil
+	})
 	first, err := os.Stat(filepath.Join(local, "result", "sub", "file"))
 	if err != nil {
 		t.Fatal(err)
