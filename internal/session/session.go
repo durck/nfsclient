@@ -17,18 +17,18 @@ import (
 )
 
 type Session struct {
-	Client                       *nfs.Client
-	Host, Export, CWD            string
-	Root                         nfs.Node
-	ExportRoot                   nfs.Node
-	DiscoveredRoot               *nfs.Node
-	DiscoveryAttempts            int
-	RootVerification             *RootVerification
+	Client                                    *nfs.Client
+	Host, Export, CWD                         string
+	Root                                      nfs.Node
+	ExportRoot                                nfs.Node
+	DiscoveredRoot                            *nfs.Node
+	DiscoveryAttempts                         int
+	RootVerification                          *RootVerification
 	AutoUID, AutoEscape, Escaped, AutoUIDScan bool
-	BaseAuth                     nfs.Auth
-	Notice                       io.Writer
-	ProbeError                   error
-	LockPaths                    map[uint64]string
+	BaseAuth                                  nfs.Auth
+	Notice                                    io.Writer
+	ProbeError                                error
+	LockPaths                                 map[uint64]string
 }
 
 var ErrSymlinkLoop = errors.New("too many symbolic links")
