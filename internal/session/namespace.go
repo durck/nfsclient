@@ -6,7 +6,7 @@ import (
 	"path"
 	"strings"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 // Namespace mutations pin the current identity instead of choosing a different

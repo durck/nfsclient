@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 // TestNativeStorageRoots targets only the explicitly selected disposable

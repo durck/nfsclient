@@ -15,7 +15,7 @@ import (
 	"syscall"
 	"testing"
 
-	"nfs-viewer/internal/testiscsi"
+	"nfsclient/internal/testiscsi"
 	"strings"
 	"time"
 )

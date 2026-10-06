@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func rootNode(id uint64) nfs.Node {

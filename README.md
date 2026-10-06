@@ -1,4 +1,6 @@
-# nfs-viewer
+# nfsclient
+
+![nfsclient — Browse remote files. Skip the mount. Windows / Linux.](docs/assets/readme-banner.png)
 
 An interactive NFS client for Windows and Linux. It connects directly through
 RPC without an OS NFS client or mount. Ordinary operations support NFSv3 and
@@ -28,20 +30,20 @@ repository's **Actions → CI → Artifacts** page. CI artifacts are development
 builds identified by their workflow commit.
 
 When a tagged release is available, use its **Releases → Assets** downloads.
-Select `nfs-viewer-windows-amd64.exe` for Windows x64 or
-`nfs-viewer-linux-amd64` for Linux x64, and retain the accompanying `LICENSE`
+Select `nfsclient-windows-amd64.exe` for Windows x64 or
+`nfsclient-linux-amd64` for Linux x64, and retain the accompanying `LICENSE`
 and `THIRD-PARTY-LICENSES.txt`. Extract the artifact and compare the binary's
 SHA-256 digest with its `SHA256SUMS` entry:
 
 ```powershell
-Get-FileHash .\nfs-viewer-windows-amd64.exe -Algorithm SHA256
-.\nfs-viewer-windows-amd64.exe --help
+Get-FileHash .\nfsclient-windows-amd64.exe -Algorithm SHA256
+.\nfsclient-windows-amd64.exe --help
 ```
 
 ```sh
 sha256sum -c SHA256SUMS
-chmod +x nfs-viewer-linux-amd64
-./nfs-viewer-linux-amd64 --help
+chmod +x nfsclient-linux-amd64
+./nfsclient-linux-amd64 --help
 ```
 
 A checksum detects corrupted downloads; it is not a publisher signature.
@@ -54,16 +56,16 @@ Go 1.26 is required; `go.mod` selects patched Go 1.26.8 automatically.
 $previousCGOEnabled = $env:CGO_ENABLED
 try {
   $env:CGO_ENABLED = "0"
-  go build -trimpath -o bin/nfs-viewer-windows-amd64.exe .
+  go build -trimpath -o bin/nfsclient-windows-amd64.exe .
 } finally {
   $env:CGO_ENABLED = $previousCGOEnabled
 }
-.\bin\nfs-viewer-windows-amd64.exe nfs.example.test --export /data
+.\bin\nfsclient-windows-amd64.exe nfs.example.test --export /data
 ```
 
 ```sh
-CGO_ENABLED=0 go build -trimpath -o bin/nfs-viewer-linux-amd64 .
-./bin/nfs-viewer-linux-amd64 nfs.example.test --export /data
+CGO_ENABLED=0 go build -trimpath -o bin/nfsclient-linux-amd64 .
+./bin/nfsclient-linux-amd64 nfs.example.test --export /data
 ```
 
 Launching without arguments displays help. By default, AUTH_SYS/TCP probes
@@ -130,18 +132,18 @@ sunrpc ALPN remain mandatory; no plaintext fallback or UDP/DTLS is provided.
 
 ```sh
 # keytab
-./bin/nfs-viewer-linux-amd64 nfs.example.test --export /data \
+./bin/nfsclient-linux-amd64 nfs.example.test --export /data \
   --nfs-version 4.1 --sec krb5p --principal alice@EXAMPLE.TEST \
   --spn nfs/nfs.example.test --krb5-config /absolute/krb5.conf \
   --keytab /absolute/alice.keytab --auto-escape=false
 
 # password / Windows domain
-./bin/nfs-viewer-linux-amd64 nfs.example.test --export /data \
+./bin/nfsclient-linux-amd64 nfs.example.test --export /data \
   --nfs-version 4.1 --sec krb5 --principal alice --domain CORP.LOCAL \
   --password "s3cr3t"
 
 # PKCS12/PFX certificate
-./bin/nfs-viewer-linux-amd64 nfs.example.test --export /data \
+./bin/nfsclient-linux-amd64 nfs.example.test --export /data \
   --nfs-version 4.1 --sec krb5p --principal alice@EXAMPLE.TEST \
   --pkinit-pfx alice.pfx --pkinit-pfx-password "pfxpassword"
 ```
@@ -174,16 +176,16 @@ checks for common misconfigurations without requiring an OS-level mount:
 
 ```sh
 # single host
-nfs-viewer scan 192.168.1.10
+nfsclient scan 192.168.1.10
 
 # CIDR range under AUTH_SYS UID 0
-nfs-viewer scan 192.168.0.0/24 --uid 0
+nfsclient scan 192.168.0.0/24 --uid 0
 
 # Kerberos password auth
-nfs-viewer scan 10.0.0.0/24 --sec krb5 --principal user --domain CORP.LOCAL --password Secret
+nfsclient scan 10.0.0.0/24 --sec krb5 --principal user --domain CORP.LOCAL --password Secret
 
 # targets from file, JSON output
-nfs-viewer scan -f targets.txt --output json
+nfsclient scan -f targets.txt --output json
 ```
 
 Target formats accepted as positional arguments or via `--file`:

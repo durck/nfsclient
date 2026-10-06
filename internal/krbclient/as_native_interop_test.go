@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"io"
 	"net"
-	"nfs-viewer/internal/testutil/kdcfixture"
+	"nfsclient/internal/testutil/kdcfixture"
 	"os"
 	"path/filepath"
 	"sync/atomic"

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"path"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func isPermDenied(err error) bool {

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/testutil/kerberosfixture"
+	"nfsclient/internal/testutil/kerberosfixture"
 )
 
 // Samba AD is independent of the MIT fixture. Passing this does not certify

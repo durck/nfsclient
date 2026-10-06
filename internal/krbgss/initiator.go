@@ -22,9 +22,9 @@ import (
 	"github.com/jcmturner/gokrb5/v8/messages"
 	"github.com/jcmturner/gokrb5/v8/spnego"
 	"github.com/jcmturner/gokrb5/v8/types"
-	client "nfs-viewer/internal/krbclient"
-	"nfs-viewer/internal/krbconfig"
-	"nfs-viewer/internal/resolve"
+	client "nfsclient/internal/krbclient"
+	"nfsclient/internal/krbconfig"
+	"nfsclient/internal/resolve"
 )
 
 // Initiator represents the client side of the GSSAPI protocol.

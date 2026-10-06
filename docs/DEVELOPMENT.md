@@ -56,8 +56,8 @@ the default self-check from a source checkout. Reproducing a historical native
 run requires its original inputs; current support is described by
 [compatibility](COMPATIBILITY.md), not by an archived binary or old test count.
 
-Current executable names are `bin/nfs-viewer-windows-amd64.exe` and
-`bin/nfs-viewer-linux-amd64`. Distributions must include the root `LICENSE` and
+Current executable names are `bin/nfsclient-windows-amd64.exe` and
+`bin/nfsclient-linux-amd64`. Distributions must include the root `LICENSE` and
 `bin/THIRD-PARTY-LICENSES.txt`; generate the latter with
 `python -B tests/package_licenses.py` or the self-check.
 

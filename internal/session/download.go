@@ -7,7 +7,7 @@ import (
 	"math"
 	"strings"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 // This is a detectable-change guard, not a snapshot or a content hash.

@@ -3,7 +3,7 @@ package iscsi
 import (
 	"bytes"
 	"context"
-	"nfs-viewer/internal/testiscsi"
+	"nfsclient/internal/testiscsi"
 	"os"
 	"path/filepath"
 	"testing"

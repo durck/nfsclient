@@ -43,9 +43,9 @@ func TestOffloadStateHelp(t *testing.T) {
 		want []string
 	}{
 		{[]string{"--help"}, []string{"offload-state", "--offload-journal", "block-state"}},
-		{[]string{"offload-state", "--help"}, []string{"nfs-viewer offload-state", "inspect", "ack"}},
+		{[]string{"offload-state", "--help"}, []string{"nfsclient offload-state", "inspect", "ack"}},
 		{[]string{"offload-state", "ack", "--help"}, []string{"ABSOLUTE_FILE OPERATION_ID", "--server-quiesced", "--destination-verified"}},
-		{[]string{"block-state", "--help"}, []string{"nfs-viewer block-state", "inspect", "ack"}},
+		{[]string{"block-state", "--help"}, []string{"nfsclient block-state", "inspect", "ack"}},
 		{[]string{"block-state", "ack", "--help"}, []string{"ABSOLUTE_FILE OPERATION_ID", "--storage-quiesced", "--destination-verified"}},
 	} {
 		var out bytes.Buffer

@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
 )
 
 // Every MiB has its own index, so a reordered or repeated block changes the hash.

@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 // The normal CLI prepares/hashes/issues COPY. A killed process leaves an exact

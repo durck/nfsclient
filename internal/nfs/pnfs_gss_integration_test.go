@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	bgss "nfs-viewer/internal/krbgss"
+	bgss "nfsclient/internal/krbgss"
 )
 
 // These opt-in tests use real MIT-issued tickets and the Go GSS acceptor.

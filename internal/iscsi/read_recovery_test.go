@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/testiscsi"
+	"nfsclient/internal/testiscsi"
 )
 
 func TestApprovedReadRecovery(t *testing.T) {

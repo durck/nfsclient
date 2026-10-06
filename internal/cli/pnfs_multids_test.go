@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
 )
 
 // LizardFS uses 64 MiB file-layout stripes. Three chunks exercise real storage

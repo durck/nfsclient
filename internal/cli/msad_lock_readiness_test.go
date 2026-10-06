@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
 )
 
 // Test-only readiness probe: Linux lockd can keep locks_in_grace true after

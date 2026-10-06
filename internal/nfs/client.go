@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"nfs-viewer/internal/resolve"
+	"nfsclient/internal/resolve"
 )
 
 const (

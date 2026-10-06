@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
 )
 
 // Linux 6.8 does not implement IO_ADVISE. Its real NOTSUPP response must

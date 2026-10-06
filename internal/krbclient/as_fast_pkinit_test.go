@@ -11,7 +11,7 @@ import (
 	"github.com/jcmturner/gokrb5/v8/crypto"
 	"github.com/jcmturner/gokrb5/v8/messages"
 	"github.com/jcmturner/gokrb5/v8/types"
-	"nfs-viewer/internal/testutil/kdcfixture"
+	"nfsclient/internal/testutil/kdcfixture"
 	"os"
 	"path/filepath"
 	"strings"

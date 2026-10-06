@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
 )
 
 // These groups come from server-local NSS, not a PAC or client-supplied IDs.

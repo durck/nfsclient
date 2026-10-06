@@ -9,7 +9,7 @@ import (
 	"github.com/jcmturner/gokrb5/v8/config"
 	"github.com/jcmturner/gokrb5/v8/keytab"
 	"github.com/jcmturner/gokrb5/v8/types"
-	"nfs-viewer/internal/testutil/kerberosfixture"
+	"nfsclient/internal/testutil/kerberosfixture"
 )
 
 // Require real intermediate-issued tickets, not merely a successful service

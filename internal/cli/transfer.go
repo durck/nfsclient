@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/chzyer/readline"
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
 )
 
 func (s *Shell) destination(ctx context.Context, operation, name string) (exists, regular bool, err error) {

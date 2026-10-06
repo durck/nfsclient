@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/jcmturner/gokrb5/v8/config"
-	client "nfs-viewer/internal/krbclient"
+	client "nfsclient/internal/krbclient"
 )
 
 func writeProfile(t *testing.T, path, text string) {

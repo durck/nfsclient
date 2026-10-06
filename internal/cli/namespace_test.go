@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
-	"nfs-viewer/internal/testutil/nfsv2"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
+	"nfsclient/internal/testutil/nfsv2"
 )
 
 func TestNamespaceCommands(t *testing.T) {

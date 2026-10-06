@@ -7,7 +7,7 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func newBlockStateCommand(out io.Writer) *cobra.Command {

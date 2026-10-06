@@ -5,7 +5,7 @@ package cli
 import (
 	"bytes"
 	"fmt"
-	"nfs-viewer/internal/testutil/kdcfixture"
+	"nfsclient/internal/testutil/kdcfixture"
 	"os"
 	"path/filepath"
 	"strconv"

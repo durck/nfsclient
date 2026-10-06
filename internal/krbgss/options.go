@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/jcmturner/gokrb5/v8/types"
-	"nfs-viewer/internal/krbconfig"
+	"nfsclient/internal/krbconfig"
 )
 
 // Option is the signature for all constructor options.

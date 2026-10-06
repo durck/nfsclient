@@ -58,7 +58,7 @@ jobs:
           import platform
           import shutil
           from pathlib import Path
-          binary = "nfs-viewer-windows-amd64.exe" if platform.system() == "Windows" else "nfs-viewer-linux-amd64"
+          binary = "nfsclient-windows-amd64.exe" if platform.system() == "Windows" else "nfsclient-linux-amd64"
           output = Path("bin/distribution")
           output.mkdir()
           for source in (Path("bin") / binary, Path("bin/THIRD-PARTY-LICENSES.txt"), Path("LICENSE")):
@@ -68,7 +68,7 @@ jobs:
       - name: Upload build
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: nfs-viewer-${{ runner.os }}-amd64
+          name: nfsclient-${{ runner.os }}-amd64
           path: bin/distribution/
           if-no-files-found: error
           retention-days: 14

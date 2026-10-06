@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/sspi"
+	"nfsclient/internal/sspi"
 )
 
 // This opt-in test contacts only the explicitly selected NFS export. It uses

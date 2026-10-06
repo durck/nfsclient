@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"nfs-viewer/internal/resolve"
+	"nfsclient/internal/resolve"
 )
 
 const maxRecord = 8 << 20

@@ -21,8 +21,8 @@ import (
 	"github.com/jcmturner/gokrb5/v8/keytab"
 	"github.com/jcmturner/gokrb5/v8/messages"
 	"github.com/jcmturner/gokrb5/v8/types"
-	bgss "nfs-viewer/internal/krbgss"
-	"nfs-viewer/internal/testutil/kdcfixture"
+	bgss "nfsclient/internal/krbgss"
+	"nfsclient/internal/testutil/kdcfixture"
 )
 
 // Real encrypted service tickets, minted only inside this test, exercise GSS

@@ -4,7 +4,7 @@ package nfs
 
 import (
 	"context"
-	"nfs-viewer/internal/testutil/kdcfixture"
+	"nfsclient/internal/testutil/kdcfixture"
 	"os"
 	"testing"
 )

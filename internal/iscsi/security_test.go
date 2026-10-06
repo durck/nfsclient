@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"nfs-viewer/internal/testiscsi"
+	"nfsclient/internal/testiscsi"
 	"os"
 	"path/filepath"
 	"strings"

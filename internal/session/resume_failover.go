@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 // GetResumeFailover tries each explicitly approved endpoint at most once after

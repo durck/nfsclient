@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/session"
 )
 
 func TestRecursiveRoundTripAndCollision(t *testing.T) {

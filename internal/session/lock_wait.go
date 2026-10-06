@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 // LockWait polls only fully acknowledged DENIED results whose OPEN/owner

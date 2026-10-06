@@ -35,7 +35,7 @@ def main():
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     result_file = out / (target + "-summary.json")
     results = []
-    binary_name = "nfs-viewer-windows-amd64.exe" if target == "windows" else "nfs-viewer-linux-amd64"
+    binary_name = "nfsclient-windows-amd64.exe" if target == "windows" else "nfsclient-linux-amd64"
     binary = ROOT / "bin" / binary_name
     module_cache = None
     if args.linux_container:
@@ -46,11 +46,11 @@ def main():
         extra_env = extra_env or {}
         if not args.linux_container:
             return ["go", *arguments], {**env, **extra_env}
-        command = ["docker", "run", "--rm", "--name", "nfs-viewer-selfcheck",
+        command = ["docker", "run", "--rm", "--name", "nfsclient-selfcheck",
                    "-v", str(ROOT) + ":/work:ro",
                    "-v", str(ROOT / "bin") + ":/work/bin",
                    "-v", module_cache + ":/go/pkg/mod:ro",
-                   "-v", "nfs-viewer-go-build:/root/.cache/go-build", "-w", "/work"]
+                   "-v", "nfsclient-go-build:/root/.cache/go-build", "-w", "/work"]
         for key, value in extra_env.items():
             command.extend(["-e", key + "=" + value])
         return [*command, "golang:1.26.8", "go", *arguments], env

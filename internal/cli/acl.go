@@ -12,7 +12,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func (s *Shell) inspectACL(ctx context.Context, path string) error {

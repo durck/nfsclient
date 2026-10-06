@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 // Stock FreeBSD refreshes the MDS ctime during LAYOUTRETURN. Source verification

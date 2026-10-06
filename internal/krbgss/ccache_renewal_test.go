@@ -16,7 +16,7 @@ import (
 	"github.com/jcmturner/gokrb5/v8/iana/keyusage"
 	"github.com/jcmturner/gokrb5/v8/messages"
 	"github.com/jcmturner/gokrb5/v8/types"
-	"nfs-viewer/internal/testutil/kdcfixture"
+	"nfsclient/internal/testutil/kdcfixture"
 )
 
 func renewalCacheWire(t *testing.T, end time.Time) []byte {

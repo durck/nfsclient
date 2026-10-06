@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/testiscsi"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/testiscsi"
 )
 
 // Execute the real command parser in an independently killable process. The

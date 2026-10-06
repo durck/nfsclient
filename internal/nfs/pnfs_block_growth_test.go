@@ -16,7 +16,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"nfs-viewer/internal/testiscsi"
+	"nfsclient/internal/testiscsi"
 	"time"
 )
 

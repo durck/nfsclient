@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/jcmturner/gokrb5/v8/gssapi"
-	"nfs-viewer/internal/krbconfig"
-	bgss "nfs-viewer/internal/krbgss"
-	"nfs-viewer/internal/resolve"
+	"nfsclient/internal/krbconfig"
+	bgss "nfsclient/internal/krbgss"
+	"nfsclient/internal/resolve"
 )
 
 // KerberosConfig requires explicit credentials; no ambient password or cache lookup.

@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 // Each connection has independent session, client and state IDs. The restarted

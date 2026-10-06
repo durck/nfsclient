@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/testutil/loopback"
+	"nfsclient/internal/testutil/loopback"
 )
 
 func syncGrantCall(version uint32, l *nlmLock) encoder {

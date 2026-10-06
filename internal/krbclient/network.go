@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"nfs-viewer/internal/resolve"
+	"nfsclient/internal/resolve"
 
 	"github.com/jcmturner/gokrb5/v8/iana/errorcode"
 	"github.com/jcmturner/gokrb5/v8/messages"

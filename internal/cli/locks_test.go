@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
 )
 
 func exerciseFileLocks(t *testing.T, ctx context.Context, a, b *session.Session, remote string) {

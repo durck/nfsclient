@@ -6,7 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
-	"nfs-viewer/internal/testiscsi"
+	"nfsclient/internal/testiscsi"
 	"os"
 	"path/filepath"
 	"testing"

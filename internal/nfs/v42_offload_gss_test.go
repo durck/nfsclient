@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	bgss "nfs-viewer/internal/krbgss"
+	bgss "nfsclient/internal/krbgss"
 )
 
 func TestOffloadGSSProfile(t *testing.T) {

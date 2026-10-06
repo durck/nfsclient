@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 // PutPNFS creates a new destination with guarded CREATE, then writes through

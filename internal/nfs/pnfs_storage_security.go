@@ -2,7 +2,7 @@ package nfs
 
 import (
 	"errors"
-	"nfs-viewer/internal/iscsi"
+	"nfsclient/internal/iscsi"
 )
 
 func validateStorageSecurity(policies map[string]iscsi.Security, targets []string) (map[string]iscsi.Security, error) {

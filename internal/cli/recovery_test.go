@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/session"
 )
 
 func TestReconnectRestoresDirectoryAndCredentials(t *testing.T) {

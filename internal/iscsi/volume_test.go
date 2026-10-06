@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/testiscsi"
+	"nfsclient/internal/testiscsi"
 )
 
 func TestTCPStorage(t *testing.T) {

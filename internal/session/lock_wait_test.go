@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func TestLockWaitLocalRefusals(t *testing.T) {

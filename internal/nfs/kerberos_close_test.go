@@ -15,8 +15,8 @@ import (
 	"github.com/jcmturner/gokrb5/v8/iana/flags"
 	"github.com/jcmturner/gokrb5/v8/messages"
 	"github.com/jcmturner/gokrb5/v8/types"
-	bgss "nfs-viewer/internal/krbgss"
-	"nfs-viewer/internal/testutil/kdcfixture"
+	bgss "nfsclient/internal/krbgss"
+	"nfsclient/internal/testutil/kdcfixture"
 )
 
 // A structurally valid FILE TGT already inside its renewal margin. The silent

@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 // This gate is separate from the AUTH_SYS suite. A local MIT realm with

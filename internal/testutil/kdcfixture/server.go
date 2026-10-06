@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"nfs-viewer/internal/testutil/loopback"
+	"nfsclient/internal/testutil/loopback"
 )
 
 type Server struct {

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func (s *Session) labelTarget(ctx context.Context, remote string) (nfs.Node, error) {

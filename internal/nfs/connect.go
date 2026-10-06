@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"nfs-viewer/internal/krbconfig"
+	"nfsclient/internal/krbconfig"
 	"path/filepath"
 )
 

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	bgss "nfs-viewer/internal/krbgss"
+	bgss "nfsclient/internal/krbgss"
 	"os"
 	"path/filepath"
 	"runtime"

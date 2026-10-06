@@ -7,7 +7,7 @@ import (
 	"io"
 	"slices"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func resolveSavedLockPath(ctx context.Context, s *Session, path string) (nfs.Node, error) {

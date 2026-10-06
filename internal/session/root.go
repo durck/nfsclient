@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 type RootCheck struct{ Name, Result string }

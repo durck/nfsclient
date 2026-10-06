@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func TestRootSelectionAndVerification(t *testing.T) {

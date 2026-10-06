@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/krbconfig"
-	bgss "nfs-viewer/internal/krbgss"
-	"nfs-viewer/internal/sspi"
+	"nfsclient/internal/krbconfig"
+	bgss "nfsclient/internal/krbgss"
+	"nfsclient/internal/sspi"
 )
 
 func TestSSPIProfilePreflight(t *testing.T) {

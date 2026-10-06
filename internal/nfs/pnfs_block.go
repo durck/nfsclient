@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"time"
 
-	"nfs-viewer/internal/iscsi"
+	"nfsclient/internal/iscsi"
 )
 
 const blockSector = 512

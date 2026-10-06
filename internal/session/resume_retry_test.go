@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"testing"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func TestReadRecoveryError(t *testing.T) {

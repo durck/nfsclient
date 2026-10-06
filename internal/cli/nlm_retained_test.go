@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
 )
 
 func retainedNLMConfig(t *testing.T, version, transport, suffix string) nfs.Config {

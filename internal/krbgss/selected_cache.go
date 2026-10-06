@@ -5,7 +5,7 @@ import (
 
 	"github.com/jcmturner/gokrb5/v8/config"
 	"github.com/jcmturner/gokrb5/v8/credentials"
-	client "nfs-viewer/internal/krbclient"
+	client "nfsclient/internal/krbclient"
 )
 
 // All explicit cache backends share the same principal and TGT lifetime gates.

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 // The external fixture driver waits for each marker, confirms the queued LOCK

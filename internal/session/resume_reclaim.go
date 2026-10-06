@@ -8,7 +8,7 @@ import (
 	"os"
 	"slices"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 var ErrResumeLockChanged = errors.New("protected download lock or session changed")

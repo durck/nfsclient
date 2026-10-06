@@ -13,7 +13,7 @@ import (
 	"github.com/jcmturner/gokrb5/v8/iana/patype"
 	"github.com/jcmturner/gokrb5/v8/messages"
 	"github.com/jcmturner/gokrb5/v8/types"
-	"nfs-viewer/internal/testutil/kdcfixture"
+	"nfsclient/internal/testutil/kdcfixture"
 )
 
 // Encrypt the KDC reply with an explicitly synthetic session key. This exercises

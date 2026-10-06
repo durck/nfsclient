@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"nfs-viewer/internal/testutil/loopback"
+	"nfsclient/internal/testutil/loopback"
 	"strings"
 	"sync/atomic"
 	"testing"

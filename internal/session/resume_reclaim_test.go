@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func TestProtectedReadRecoveryError(t *testing.T) {

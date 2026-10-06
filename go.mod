@@ -1,4 +1,4 @@
-module nfs-viewer
+module nfsclient
 
 go 1.26.0
 

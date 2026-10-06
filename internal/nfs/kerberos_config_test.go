@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/krbconfig"
+	"nfsclient/internal/krbconfig"
 )
 
 func TestKerberosSplitConfigAuthenticationAndChangedRenewal(t *testing.T) {

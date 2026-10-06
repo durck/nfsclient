@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/resolve"
-	"nfs-viewer/internal/testutil/kdcfixture"
-	"nfs-viewer/internal/testutil/loopback"
+	"nfsclient/internal/resolve"
+	"nfsclient/internal/testutil/kdcfixture"
+	"nfsclient/internal/testutil/loopback"
 
 	"github.com/jcmturner/gokrb5/v8/config"
 	"github.com/jcmturner/gokrb5/v8/iana/errorcode"

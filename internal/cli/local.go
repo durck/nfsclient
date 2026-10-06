@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func localEntry(info os.FileInfo) nfs.Entry {

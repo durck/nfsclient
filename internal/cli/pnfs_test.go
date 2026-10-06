@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
 )
 
 func pnfsFixture(t *testing.T) (host string, port int, advertised, target string) {

@@ -9,7 +9,7 @@ import (
 	"path"
 	"strings"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 // Cache each existing directory once. A merge must not create names that

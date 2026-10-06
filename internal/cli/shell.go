@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"nfs-viewer/internal/iscsi"
+	"nfsclient/internal/iscsi"
 	"os"
 	"os/signal"
 	"path"
@@ -19,8 +19,8 @@ import (
 	"unicode"
 
 	"github.com/chzyer/readline"
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
 )
 
 var commands = []string{"exports", "use", "reconnect", "migrate", "lock-save", "offload-reconcile", "lock", "locktest", "nlmrecover", "locks", "unlock", "pwd", "cd", "ls", "stat", "acl", "getacl", "setacl", "label", "setlabel", "xattrs", "getxattr", "setxattr", "removexattr", "cat", "hex", "get", "getplus", "getpnfs", "putrangepnfs", "putpnfs", "getrange", "putrange", "reget", "reput", "replace", "gettree", "puttree", "put", "chmod", "mkdir", "rm", "rmdir", "mv", "copyrange", "clonerange", "copyasync", "copyfrom", "writesame", "writeadb", "advise", "seek", "allocate", "deallocate", "id", "uid", "uid-scan", "auto-uid", "auto-uid-scan", "escape", "root", "auto-escape", "squash", "lpwd", "lcd", "lls", "help", "legend", "exit", "quit"}

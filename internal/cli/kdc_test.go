@@ -22,8 +22,8 @@ import (
 	"github.com/jcmturner/gokrb5/v8/iana/errorcode"
 	"github.com/jcmturner/gokrb5/v8/messages"
 	"golang.org/x/net/dns/dnsmessage"
-	"nfs-viewer/internal/testutil/dnsfixture"
-	"nfs-viewer/internal/testutil/loopback"
+	"nfsclient/internal/testutil/dnsfixture"
+	"nfsclient/internal/testutil/loopback"
 )
 
 func TestKerberosKDCUDP(t *testing.T) {

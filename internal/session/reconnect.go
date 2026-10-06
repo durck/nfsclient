@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 // Reclaim restores only previously confirmed server-restart locks and validates

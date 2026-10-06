@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/jcmturner/gokrb5/v8/config"
-	"nfs-viewer/internal/testutil/kdcfixture"
-	"nfs-viewer/internal/testutil/kerberosfixture"
+	"nfsclient/internal/testutil/kdcfixture"
+	"nfsclient/internal/testutil/kerberosfixture"
 )
 
 func TestKerberosCrossRealmRenewalTransfer(t *testing.T) {

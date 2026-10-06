@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"nfs-viewer/internal/krbconfig"
+	"nfsclient/internal/krbconfig"
 	"os"
 	"path/filepath"
 	"slices"

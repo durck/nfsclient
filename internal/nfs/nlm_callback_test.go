@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/testutil/loopback"
+	"nfsclient/internal/testutil/loopback"
 )
 
 func TestNLMCallbackIdentityAndDuplicates(t *testing.T) {

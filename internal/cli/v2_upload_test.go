@@ -15,9 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
-	"nfs-viewer/internal/testutil/nfsv2"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
+	"nfsclient/internal/testutil/nfsv2"
 )
 
 func v2Session(t *testing.T, server *nfsv2.Server) *session.Session {

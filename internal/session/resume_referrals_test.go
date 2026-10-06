@@ -3,7 +3,7 @@ package session
 import (
 	"errors"
 	"fmt"
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 	"slices"
 	"testing"
 )

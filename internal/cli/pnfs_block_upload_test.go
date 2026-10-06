@@ -15,9 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
-	"nfs-viewer/internal/testiscsi"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
+	"nfsclient/internal/testiscsi"
 )
 
 func TestBlockNewUpload(t *testing.T) {

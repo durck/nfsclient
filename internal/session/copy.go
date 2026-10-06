@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 	"time"
 )
 

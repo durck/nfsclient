@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"github.com/chzyer/readline"
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
 )
 
 func TestTransferConflictChoices(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 var ErrResumePrefix = errors.New("partial download does not match the current remote file")

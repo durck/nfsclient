@@ -2,8 +2,8 @@ package nfs
 
 import (
 	"bytes"
-	"nfs-viewer/internal/iscsi"
-	"nfs-viewer/internal/testiscsi"
+	"nfsclient/internal/iscsi"
+	"nfsclient/internal/testiscsi"
 	"testing"
 	"time"
 )

@@ -16,10 +16,10 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/iscsi"
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
-	"nfs-viewer/internal/testiscsi"
+	"nfsclient/internal/iscsi"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
+	"nfsclient/internal/testiscsi"
 )
 
 func cliObjectCred(id []byte, object uint64, root bool) []byte {

@@ -10,7 +10,7 @@ import (
 	"path"
 	"strings"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 const treeEntryLimit = 100000

@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 	"os"
 	"os/exec"
 	"path/filepath"

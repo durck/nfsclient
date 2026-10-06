@@ -16,8 +16,8 @@ import (
 	"github.com/go-git/go-billy/v5/osfs"
 	server "github.com/willscott/go-nfs"
 	"github.com/willscott/go-nfs/helpers"
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
 )
 
 type changeFS struct{ billy.Filesystem }

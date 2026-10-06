@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"log"
 
-	"nfs-viewer/internal/resolve"
+	"nfsclient/internal/resolve"
 )
 
 // Settings holds optional client settings.

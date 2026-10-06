@@ -2,7 +2,7 @@ package nfs
 
 import (
 	"context"
-	bgss "nfs-viewer/internal/krbgss"
+	bgss "nfsclient/internal/krbgss"
 	"path/filepath"
 	"strings"
 	"testing"

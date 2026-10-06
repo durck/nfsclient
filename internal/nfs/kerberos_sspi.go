@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"nfs-viewer/internal/sspi"
+	"nfsclient/internal/sspi"
 )
 
 type kerberosInitiator interface {

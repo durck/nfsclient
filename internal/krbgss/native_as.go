@@ -9,7 +9,7 @@ import (
 
 	"github.com/jcmturner/gokrb5/v8/config"
 	"github.com/jcmturner/gokrb5/v8/credentials"
-	client "nfs-viewer/internal/krbclient"
+	client "nfsclient/internal/krbclient"
 )
 
 func ValidateNativeAS(helper, armor string, required bool) error {

@@ -7,7 +7,7 @@ import (
 	"io"
 	"math"
 	"net/netip"
-	"nfs-viewer/internal/iscsi"
+	"nfsclient/internal/iscsi"
 	"slices"
 	"strconv"
 	"strings"

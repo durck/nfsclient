@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
 )
 
 func multiRangeFlow(t *testing.T, s *session.Session) {

@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	bgss "nfs-viewer/internal/krbgss"
+	bgss "nfsclient/internal/krbgss"
 )
 
 type callbackRenewPeer struct {

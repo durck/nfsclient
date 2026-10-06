@@ -20,8 +20,8 @@ import (
 	"github.com/jcmturner/gokrb5/v8/keytab"
 	"github.com/jcmturner/gokrb5/v8/messages"
 	"github.com/jcmturner/gokrb5/v8/types"
-	client "nfs-viewer/internal/krbclient"
-	"nfs-viewer/internal/testutil/kdcfixture"
+	client "nfsclient/internal/krbclient"
+	"nfsclient/internal/testutil/kdcfixture"
 )
 
 // The kernel-facing source is deterministic; TGS replies, service tickets and

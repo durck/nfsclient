@@ -12,8 +12,8 @@ import (
 
 	"github.com/chzyer/readline"
 	"github.com/spf13/cobra"
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
 )
 
 func NewCommand(in io.Reader, out, errOut io.Writer) *cobra.Command {
@@ -23,14 +23,14 @@ func NewCommand(in io.Reader, out, errOut io.Writer) *cobra.Command {
 	var autoUID, autoEscape, autoUIDScan, batch, noBanner bool
 	var lines []string
 	var pfxPath, pfxPassword, krbPassword, krbDomain string
-	cmd := &cobra.Command{Use: "nfs-viewer HOST", Short: "Interactive NFS client for Windows and Linux", Args: cobra.MaximumNArgs(1), SilenceUsage: true, SilenceErrors: true}
+	cmd := &cobra.Command{Use: "nfsclient HOST", Short: "Interactive NFS client for Windows and Linux", Args: cobra.MaximumNArgs(1), SilenceUsage: true, SilenceErrors: true}
 	cmd.SetIn(in)
 	cmd.SetOut(out)
 	cmd.SetErr(errOut)
 	cmd.AddCommand(newOffloadStateCommand(out), newBlockStateCommand(out), newLockStateCommand(out), newScanCommand(out))
 	f := cmd.Flags()
 	f.StringVarP(&export, "export", "e", "", "Export to select; otherwise try advertised exports in order")
-	f.StringVar(&cfg.Version, "nfs-version", "auto", "NFS version: auto, 2, 3, 4.0, 4.1, 4.2")
+	f.StringVarP(&cfg.Version, "nfs-version", "V", "auto", "NFS version: auto, 2, 3, 4.0, 4.1, 4.2")
 	f.StringVar(&cfg.Transport, "transport", "tcp", "RPC transport: tcp, udp (v2/v3), iwarp (software inline RDMA; explicit v4, AUTH_SYS)")
 	f.Uint32Var(&cfg.UDPSize, "udp-size", 0, "UDP data/directory limit: 512..4096 bytes (0 = 4096); try 1024 on fragmented paths")
 	f.BoolVar(&cfg.TLS.Enabled, "tls", false, "Require RPC-over-TLS 1.3 on all RPC services")
@@ -49,13 +49,13 @@ func NewCommand(in io.Reader, out, errOut io.Writer) *cobra.Command {
 	f.StringVar(&cfg.TLS.KeyFile, "tls-key", "", "TLS client private key paired with --tls-cert")
 	f.StringVar(&cfg.DNS.Server, "dns-server", "", "DNS server IP[:PORT] (default: system DNS; port 53)")
 	f.BoolVar(&cfg.DNS.TCP, "dns-tcp", false, "Use TCP for DNS lookups, including Kerberos KDC discovery")
-	f.StringVar(&cfg.Security, "sec", "sys", "Security: sys, krb5 (authentication), krb5i (integrity), krb5p (privacy); Kerberos: v2/v3/v4 TCP, v2/v3 UDP")
+	f.StringVarP(&cfg.Security, "sec", "s", "sys", "Security: sys, krb5 (authentication), krb5i (integrity), krb5p (privacy); Kerberos: v2/v3/v4 TCP, v2/v3 UDP")
 	f.StringVar(&cfg.Kerberos.Provider, "krb5-provider", "", "Kerberos provider: portable (default) or Windows sspi current logon; explicit principal/SPN")
 	f.StringVar(&cfg.Kerberos.ConfigFile, "krb5-config", "", "Explicit krb5.conf path")
-	f.StringVar(&cfg.Kerberos.Keytab, "keytab", "", "Kerberos client keytab path")
+	f.StringVarP(&cfg.Kerberos.Keytab, "keytab", "k", "", "Kerberos client keytab path")
 	f.StringVar(&cfg.Kerberos.CCache, "ccache", "", "Explicit FILE path (formats 3/4), Linux KCM/KEYRING or Windows MSLSA:CURRENT; alternative to --keytab")
 	f.StringVar(&cfg.Kerberos.KCMSocket, "kcm-socket", "", "Explicit absolute trusted Linux KCM daemon socket; requires --ccache KCM:name")
-	f.StringVar(&cfg.Kerberos.Principal, "principal", "", "Kerberos client NAME@REALM")
+	f.StringVarP(&cfg.Kerberos.Principal, "principal", "p", "", "Kerberos client NAME@REALM")
 	f.StringVar(&cfg.Kerberos.ASAlias, "as-alias", "", "Explicit same-realm AS alias; pins --principal and requires keytab plus protected reply")
 	f.StringVar(&cfg.Kerberos.EnterpriseUPN, "enterprise-upn", "", "Explicit enterprise USER@SUFFIX; pins canonical --principal and requires keytab/protected AS reply")
 	f.StringVar(&cfg.Kerberos.ASStartRealm, "as-start-realm", "", "Explicit initial mapping realm for enterprise AS lookup")
@@ -83,10 +83,10 @@ func NewCommand(in io.Reader, out, errOut io.Writer) *cobra.Command {
 	f.BoolVar(&cfg.NLMAutoNotify, "nlm-auto-notify", false, "Send one crash notification after exact-owner cleanup; receipt cannot prove server cleanup, so retain journal and quarantine new locks; requires --nlm-auto-recover and a dedicated identity/address")
 	f.StringVar(&cfg.NLMListenIP, "nlm-listen-ip", "", "Local NSM bind IPv4 address (default: nlm-client-ip); forwarding must preserve TCP/UDP port 111")
 	f.StringVar(&cfg.NLMStateDir, "nlm-state-dir", "", "Absolute persistent NSM state directory; never delete after uncertain locks")
-	f.DurationVar(&cfg.Timeout, "timeout", 10*time.Second, "Timeout per RPC request and for complete Kerberos setup")
+	f.DurationVarP(&cfg.Timeout, "timeout", "t", 10*time.Second, "Timeout per RPC request and for complete Kerberos setup")
 	f.BoolVar(&cfg.ReservedPort, "reserved-port", false, "Bind source ports 900-1023 (may require privileges)")
-	f.Uint32Var(&cfg.Auth.UID, "uid", 0, "Initial AUTH_SYS UID")
-	f.Uint32Var(&cfg.Auth.GID, "gid", 0, "Initial AUTH_SYS GID")
+	f.Uint32VarP(&cfg.Auth.UID, "uid", "u", 0, "Initial AUTH_SYS UID")
+	f.Uint32VarP(&cfg.Auth.GID, "gid", "g", 0, "Initial AUTH_SYS GID")
 	f.StringVar(&groups, "groups", "", "Supplementary GIDs, comma-separated (max 16)")
 	f.BoolVar(&autoUID, "auto-uid", true, "NFSv3: use each object's owner UID/GID while navigating")
 	f.BoolVar(&autoEscape, "auto-escape", true, "NFSv2/v3: knfsd root-handle heuristic; NFSv4: PUTROOTFH pseudo-root probe")
@@ -110,10 +110,10 @@ func NewCommand(in io.Reader, out, errOut io.Writer) *cobra.Command {
 			printBanner(out, color)
 		}
 		fmt.Fprint(out, "  Browse NFS shares without mounting them. Windows + Linux.\n\n")
-		fmt.Fprintln(out, paint(color, bold, "Usage:")+"\n  nfs-viewer HOST [flags]\n")
-		fmt.Fprint(out, "  nfs-viewer offload-state inspect ABSOLUTE_FILE\n  nfs-viewer offload-state ack ABSOLUTE_FILE OPERATION_ID --server-quiesced --destination-verified\n\n")
-		fmt.Fprint(out, "  nfs-viewer block-state inspect ABSOLUTE_FILE\n  nfs-viewer block-state ack ABSOLUTE_FILE OPERATION_ID --storage-quiesced --destination-verified\n\n")
-		fmt.Fprintln(out, paint(color, bold, "Examples:")+"\n  nfs-viewer nfs.example.test\n  nfs-viewer nfs.example.test --export /data\n  nfs-viewer nfs.example.test -e /data -c 'ls'\n")
+		fmt.Fprintln(out, paint(color, bold, "Usage:")+"\n  nfsclient HOST [flags]\n")
+		fmt.Fprint(out, "  nfsclient offload-state inspect ABSOLUTE_FILE\n  nfsclient offload-state ack ABSOLUTE_FILE OPERATION_ID --server-quiesced --destination-verified\n\n")
+		fmt.Fprint(out, "  nfsclient block-state inspect ABSOLUTE_FILE\n  nfsclient block-state ack ABSOLUTE_FILE OPERATION_ID --storage-quiesced --destination-verified\n\n")
+		fmt.Fprintln(out, paint(color, bold, "Examples:")+"\n  nfsclient nfs.example.test\n  nfsclient nfs.example.test --export /data\n  nfsclient nfs.example.test -e /data -c 'ls'\n")
 		fmt.Fprintln(out, paint(color, bold, "In the shell:")+"\n  ls · cd · cat · hex · get · put · chmod · exports · help\n")
 		fmt.Fprintln(out, paint(color, bold, "Flags:"))
 		fmt.Fprint(out, cmd.Flags().FlagUsagesWrapped(96))

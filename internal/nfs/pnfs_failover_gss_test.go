@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	bgss "nfs-viewer/internal/krbgss"
+	bgss "nfsclient/internal/krbgss"
 )
 
 // Real MIT tickets and TCP/TLS protect the scripted DS protocol. This does not

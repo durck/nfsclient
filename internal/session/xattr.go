@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func (s *Session) xattrTarget(ctx context.Context, remote string, write bool) (nfs.Node, error) {

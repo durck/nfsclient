@@ -12,8 +12,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/chzyer/readline"
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
 )
 
 const (

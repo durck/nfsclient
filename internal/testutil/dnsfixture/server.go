@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"nfs-viewer/internal/testutil/loopback"
+	"nfsclient/internal/testutil/loopback"
 
 	"golang.org/x/net/dns/dnsmessage"
 )

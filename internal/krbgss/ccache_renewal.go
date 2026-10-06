@@ -15,7 +15,7 @@ import (
 	"github.com/jcmturner/gokrb5/v8/credentials"
 	"github.com/jcmturner/gokrb5/v8/iana/flags"
 	"github.com/jcmturner/gokrb5/v8/types"
-	client "nfs-viewer/internal/krbclient"
+	client "nfsclient/internal/krbclient"
 )
 
 // FileCacheRenewal owns renewable credentials for one live NFS connection.

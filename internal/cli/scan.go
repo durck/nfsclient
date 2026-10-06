@@ -9,8 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/scan"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/scan"
 )
 
 func newScanCommand(out io.Writer) *cobra.Command {
@@ -121,17 +121,17 @@ Kerberos example (password):
 	cmd.Flags().StringVar(&nfsVersion, "nfs-version", "auto", "NFS version: auto, 2, 3, 4.0, 4.1, 4.2")
 	cmd.Flags().IntVar(&portmapPort, "portmap-port", 111, "portmapper port")
 	cmd.Flags().IntVar(&nfsPort, "nfs-port", 0, "NFS port (0 = discover via portmapper)")
-	cmd.Flags().DurationVar(&timeout, "timeout", 5*time.Second, "per-host connection timeout")
-	cmd.Flags().IntVar(&concurrency, "concurrency", 20, "max simultaneous connections")
+	cmd.Flags().DurationVarP(&timeout, "timeout", "t", 5*time.Second, "per-host connection timeout")
+	cmd.Flags().IntVarP(&concurrency, "concurrency", "j", 20, "max simultaneous connections")
 	cmd.Flags().BoolVar(&noSquash, "no-squash-check", false, "skip no_root_squash detection")
 	cmd.Flags().BoolVar(&noEscape, "no-escape-check", false, "skip root-handle escape detection")
-	cmd.Flags().StringVar(&output, "output", "text", "output format: text or json")
+	cmd.Flags().StringVarP(&output, "output", "o", "text", "output format: text or json")
 	cmd.Flags().StringVarP(&file, "file", "f", "", "file containing targets (one per line)")
 	// auth flags
-	cmd.Flags().Uint32Var(&uid, "uid", 65534, "AUTH_SYS UID (default nobody/65534)")
-	cmd.Flags().Uint32Var(&gid, "gid", 65534, "AUTH_SYS GID (default nobody/65534)")
+	cmd.Flags().Uint32VarP(&uid, "uid", "u", 65534, "AUTH_SYS UID (default nobody/65534)")
+	cmd.Flags().Uint32VarP(&gid, "gid", "g", 65534, "AUTH_SYS GID (default nobody/65534)")
 	cmd.Flags().StringVar(&groups, "groups", "", "AUTH_SYS supplementary GIDs, comma-separated")
-	cmd.Flags().StringVar(&sec, "sec", "sys", "security: sys, krb5, krb5i, krb5p")
+	cmd.Flags().StringVarP(&sec, "sec", "s", "sys", "security: sys, krb5, krb5i, krb5p")
 	cmd.Flags().StringVar(&principal, "principal", "", "Kerberos principal NAME@REALM")
 	cmd.Flags().StringVar(&keytab, "keytab", "", "Kerberos keytab file")
 	cmd.Flags().StringVar(&password, "password", "", "Kerberos AS password")

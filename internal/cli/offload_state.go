@@ -7,7 +7,7 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func newOffloadStateCommand(out io.Writer) *cobra.Command {

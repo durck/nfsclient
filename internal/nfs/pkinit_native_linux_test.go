@@ -4,8 +4,8 @@ package nfs
 
 import (
 	"context"
-	bgss "nfs-viewer/internal/krbgss"
-	"nfs-viewer/internal/testutil/kdcfixture"
+	bgss "nfsclient/internal/krbgss"
+	"nfsclient/internal/testutil/kdcfixture"
 	"os"
 	"testing"
 )

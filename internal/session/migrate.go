@@ -9,7 +9,7 @@ import (
 	"slices"
 	"strings"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 // Migrate transfers one whole-export namespace with its confirmed retained

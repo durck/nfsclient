@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"github.com/spf13/cobra"
 	"io"
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func newLockStateCommand(out io.Writer) *cobra.Command {

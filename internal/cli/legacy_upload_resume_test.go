@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/session"
 )
 
 func TestLegacyUploadResume(t *testing.T) {

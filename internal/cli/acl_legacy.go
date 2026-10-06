@@ -12,7 +12,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 // The on-disk schema contains only editable policy and its version/type/owner

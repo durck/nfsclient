@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func TestKernelV42Label(t *testing.T) {

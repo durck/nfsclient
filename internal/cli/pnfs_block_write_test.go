@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
 )
 
 func (p *blockCLIPeer) writeOperation(code uint32, d *missingV4Decoder, current *string) ([]byte, uint32, error, bool) {

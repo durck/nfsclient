@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/session"
 )
 
 func (s *Shell) rootCommand(ctx context.Context, action string) error {

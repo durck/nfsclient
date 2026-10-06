@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 // Requires the dedicated instrumented server, with its recall trigger enabled.

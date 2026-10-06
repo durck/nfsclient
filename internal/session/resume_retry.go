@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 var recoveryNetworkCodes = []syscall.Errno{syscall.ECONNRESET, syscall.ECONNREFUSED, syscall.ECONNABORTED, syscall.EPIPE, syscall.ETIMEDOUT, syscall.ENETDOWN, syscall.ENETUNREACH, syscall.EHOSTUNREACH}

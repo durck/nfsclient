@@ -3,7 +3,7 @@ package session
 import (
 	"context"
 	"errors"
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func (s *Session) spaceFile(ctx context.Context, remote string) (nfs.Node, error) {

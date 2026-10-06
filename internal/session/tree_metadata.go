@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"time"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func (o TreeOptions) validate() error {

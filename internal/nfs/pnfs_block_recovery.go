@@ -10,7 +10,7 @@ import (
 	"errors"
 	"io"
 	"math"
-	"nfs-viewer/internal/iscsi"
+	"nfsclient/internal/iscsi"
 	"os"
 )
 

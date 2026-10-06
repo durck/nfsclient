@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func TestNLMFreeBSDNativeWait(t *testing.T) {

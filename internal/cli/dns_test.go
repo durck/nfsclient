@@ -16,7 +16,7 @@ import (
 
 	"github.com/jcmturner/gokrb5/v8/config"
 	"golang.org/x/net/dns/dnsmessage"
-	"nfs-viewer/internal/testutil/dnsfixture"
+	"nfsclient/internal/testutil/dnsfixture"
 )
 
 func TestKerberosCustomDNS(t *testing.T) {

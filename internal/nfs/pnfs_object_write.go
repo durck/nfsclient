@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strconv"
 
-	"nfs-viewer/internal/iscsi"
+	"nfsclient/internal/iscsi"
 )
 
 func validateObjectWriteOptions(o PNFSOptions) (PNFSOptions, error) {

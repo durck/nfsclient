@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/testiscsi"
+	"nfsclient/internal/testiscsi"
 )
 
 func TestBlockReadPortalRecovery(t *testing.T) {

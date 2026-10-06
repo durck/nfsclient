@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"nfs-viewer/internal/cli"
+	"nfsclient/internal/cli"
 )
 
 func main() {

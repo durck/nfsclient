@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"nfs-viewer/internal/testutil/kerberosfixture"
+	"nfsclient/internal/testutil/kerberosfixture"
 )
 
 // CLIENT.TEST owns the user/TGT; NFS.TEST owns only the service and incoming

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 const (

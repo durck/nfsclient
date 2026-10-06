@@ -8,7 +8,7 @@ import (
 	"io"
 	"os"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 type transferRange struct{ offset, length uint64 }

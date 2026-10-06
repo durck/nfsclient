@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/session"
+	"nfsclient/internal/session"
 )
 
 func TestFreeBSDPNFSUpload(t *testing.T) {

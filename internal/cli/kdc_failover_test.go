@@ -20,8 +20,8 @@ import (
 	"github.com/jcmturner/gokrb5/v8/messages"
 	"github.com/jcmturner/gokrb5/v8/types"
 	"golang.org/x/net/dns/dnsmessage"
-	"nfs-viewer/internal/testutil/dnsfixture"
-	"nfs-viewer/internal/testutil/kdcfixture"
+	"nfsclient/internal/testutil/dnsfixture"
+	"nfsclient/internal/testutil/kdcfixture"
 )
 
 func TestKerberosKDCFailover(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 	"os"
 	"path/filepath"
 	"runtime"

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"nfs-viewer/internal/krbconfig"
+	"nfsclient/internal/krbconfig"
 )
 
 func TestInitiatorFileSnapshotPreservesRealmsAndTrust(t *testing.T) {

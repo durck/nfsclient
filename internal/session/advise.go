@@ -2,7 +2,7 @@ package session
 
 import (
 	"context"
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func (s *Session) Advise(ctx context.Context, remote string, offset, length uint64, hints uint32) (nfs.AdviceResult, error) {

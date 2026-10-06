@@ -18,9 +18,9 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
-	"nfs-viewer/internal/session"
-	"nfs-viewer/internal/testiscsi"
+	"nfsclient/internal/nfs"
+	"nfsclient/internal/session"
+	"nfsclient/internal/testiscsi"
 )
 
 // This peer supplies metadata only and rejects every MDS READ/WRITE. Local

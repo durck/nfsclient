@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 func TestDownloadSourceEvidence(t *testing.T) {

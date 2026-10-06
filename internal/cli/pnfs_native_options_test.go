@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 // Additional disposable DSs must be explicitly selected by the fixture caller.

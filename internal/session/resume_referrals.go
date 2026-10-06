@@ -9,7 +9,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 // ReferralTarget binds an exact advertised server string to an operator-approved

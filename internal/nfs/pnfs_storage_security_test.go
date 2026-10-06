@@ -1,8 +1,8 @@
 package nfs
 
 import (
-	"nfs-viewer/internal/iscsi"
-	"nfs-viewer/internal/testiscsi"
+	"nfsclient/internal/iscsi"
+	"nfsclient/internal/testiscsi"
 	"os"
 	"path/filepath"
 	"testing"

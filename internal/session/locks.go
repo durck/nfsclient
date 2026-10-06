@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 
-	"nfs-viewer/internal/nfs"
+	"nfsclient/internal/nfs"
 )
 
 // TestLock checks the resolved regular file with a fixed identity. Verify the

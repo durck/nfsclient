@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strconv"
 
-	"nfs-viewer/internal/iscsi"
+	"nfsclient/internal/iscsi"
 )
 
 func validateBlockReadAlternates(o PNFSOptions, out *PNFSOptions) error {

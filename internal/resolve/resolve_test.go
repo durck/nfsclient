@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"golang.org/x/net/dns/dnsmessage"
-	"nfs-viewer/internal/testutil/dnsfixture"
+	"nfsclient/internal/testutil/dnsfixture"
 )
 
 func TestDNSServerValidation(t *testing.T) {

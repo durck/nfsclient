@@ -12,7 +12,7 @@ import (
 	"slices"
 	"sort"
 
-	"nfs-viewer/internal/iscsi"
+	"nfsclient/internal/iscsi"
 )
 
 func validateBlockWriteOptions(o PNFSOptions) (PNFSOptions, error) {

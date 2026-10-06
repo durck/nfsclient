@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	bgss "nfs-viewer/internal/krbgss"
+	bgss "nfsclient/internal/krbgss"
 )
 
 func TestPNFSMITSessionTrunk(t *testing.T) {

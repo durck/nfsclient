@@ -10,7 +10,7 @@ import (
 	"github.com/jcmturner/gokrb5/v8/messages"
 	"github.com/jcmturner/gokrb5/v8/types"
 	"math"
-	client "nfs-viewer/internal/krbclient"
+	client "nfsclient/internal/krbclient"
 	"os"
 	"testing"
 	"time"

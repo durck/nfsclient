@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"nfs-viewer/internal/testutil/kerberosfixture"
+	"nfsclient/internal/testutil/kerberosfixture"
 )
 
 func TestSambaADRenewalTransfer(t *testing.T) {

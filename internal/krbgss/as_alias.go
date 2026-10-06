@@ -1,6 +1,6 @@
 package gssapi
 
-import client "nfs-viewer/internal/krbclient"
+import client "nfsclient/internal/krbclient"
 
 func ValidateASAlias(alias, realm string) error {
 	_, err := client.ValidateASAlias(alias, realm)
