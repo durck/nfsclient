@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/chzyer/readline"
@@ -21,6 +22,7 @@ func NewCommand(in io.Reader, out, errOut io.Writer) *cobra.Command {
 	var recoverOffload, offloadOperation string
 	var autoUID, autoEscape, autoUIDScan, batch, noBanner bool
 	var lines []string
+	var pfxPath, pfxPassword, krbPassword, krbDomain string
 	cmd := &cobra.Command{Use: "nfs-viewer HOST", Short: "Interactive NFS client for Windows and Linux", Args: cobra.MaximumNArgs(1), SilenceUsage: true, SilenceErrors: true}
 	cmd.SetIn(in)
 	cmd.SetOut(out)
@@ -64,8 +66,12 @@ func NewCommand(in io.Reader, out, errOut io.Writer) *cobra.Command {
 	f.StringVar(&cfg.Kerberos.PKINIT.Key, "pkinit-key", "", "Absolute PKINIT client PEM private key; no password prompt")
 	f.StringVar(&cfg.Kerberos.PKINIT.CA, "pkinit-ca", "", "Absolute explicit PKINIT KDC CA PEM bundle")
 	f.StringVar(&cfg.Kerberos.PKINIT.CRL, "pkinit-crl", "", "Absolute PKINIT CRL PEM bundle; if selected, revocation checking is required")
+	f.StringVar(&pfxPath, "pkinit-pfx", "", "PKCS12/PFX file containing PKINIT client certificate and private key")
+	f.StringVar(&pfxPassword, "pkinit-pfx-password", "", "Password for --pkinit-pfx (empty = no password)")
 	f.StringVar(&cfg.Kerberos.FASTArmor, "fast-armor", "", "Explicit absolute private FILE armor TGT cache for --require-fast")
 	f.StringVar(&cfg.Kerberos.SPN, "spn", "", "Kerberos service principal nfs/server-hostname")
+	f.StringVar(&krbPassword, "password", "", "Kerberos AS password (use with --principal NAME@REALM or --principal NAME and --domain REALM)")
+	f.StringVar(&krbDomain, "domain", "", "Kerberos realm / Windows domain; shorthand for the realm part of --principal")
 	f.Uint32Var(&cfg.Kerberos.RPCVersion, "rpcsec-gss-version", 1, "RPCSEC_GSS version: 1 (default), 3 (explicit v4.2 krb5p/TCP; no pNFS)")
 	f.IntVar(&cfg.PortmapPort, "portmap-port", 111, "Portmapper port on the selected transport")
 	f.IntVar(&cfg.MountPort, "mount-port", 0, "Mount port (0 = discover)")
@@ -153,6 +159,11 @@ func NewCommand(in io.Reader, out, errOut io.Writer) *cobra.Command {
 		if err != nil {
 			return err
 		}
+		// --domain qualifies a bare --principal with a realm.
+		if krbDomain != "" && cfg.Kerberos.Principal != "" && !strings.Contains(cfg.Kerberos.Principal, "@") {
+			cfg.Kerberos.Principal = cfg.Kerberos.Principal + "@" + strings.ToUpper(krbDomain)
+		}
+		cfg.Kerberos.Password = krbPassword
 		if batch && len(lines) > 0 {
 			return fmt.Errorf("--batch and --command cannot be combined")
 		}
@@ -206,6 +217,15 @@ func NewCommand(in io.Reader, out, errOut io.Writer) *cobra.Command {
 				client = sess.Client
 			}
 		} else {
+			if pfxPath != "" {
+				certFile, keyFile, cleanupPFX, pfxErr := expandPFXToTempFiles(pfxPath, pfxPassword)
+				if pfxErr != nil {
+					return fmt.Errorf("pkinit-pfx: %w", pfxErr)
+				}
+				defer cleanupPFX()
+				cfg.Kerberos.PKINIT.Cert = certFile
+				cfg.Kerberos.PKINIT.Key = keyFile
+			}
 			client, err = nfs.Connect(ctx, cfg)
 			if err == nil {
 				sess = session.New(client, cfg.Host, autoUID, autoEscape, io.Discard)

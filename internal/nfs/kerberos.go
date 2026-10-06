@@ -21,6 +21,7 @@ type KerberosConfig struct {
 	Provider                                   string // Empty/portable uses explicit files; sspi selects current Windows logon.
 	configSnapshot                             *krbconfig.Snapshot
 	ConfigFile, Keytab, CCache, Principal, SPN string
+	Password                                   string // AS_REQ password (alternative to keytab/ccache/pkinit)
 	KCMSocket                                  string
 	ASAlias                                    string
 	EnterpriseUPN, ASStartRealm                string
@@ -530,6 +531,8 @@ func (c *rpcClient) establishKerberosLocked(ctx context.Context, k KerberosConfi
 		if k.KCMSocket != "" {
 			options = append(options, bgss.WithKCMSocket(k.KCMSocket))
 		}
+	} else if k.Password != "" {
+		options = append(options, bgss.WithPassword[bgss.Initiator](k.Password))
 	} else if !k.PKINIT.Selected() {
 		options = append(options, bgss.WithKeytab[bgss.Initiator](k.Keytab))
 	}

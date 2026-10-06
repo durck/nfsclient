@@ -24,6 +24,12 @@ type Options struct {
 	CheckSquash bool
 	CheckEscape bool
 	Output      string // "text" or "json"
+	// Auth
+	UID      uint32
+	GID      uint32
+	Groups   []uint32
+	Security string
+	Kerberos nfs.KerberosConfig
 }
 
 func DefaultOptions() Options {
@@ -35,6 +41,9 @@ func DefaultOptions() Options {
 		CheckSquash: true,
 		CheckEscape: true,
 		Output:      "text",
+		UID:         65534,
+		GID:         65534,
+		Security:    "sys",
 	}
 }
 
@@ -124,7 +133,9 @@ func probeHost(ctx context.Context, host string, opts Options) HostResult {
 		PortmapPort: opts.PortmapPort,
 		NFSPort:     opts.NFSPort,
 		Timeout:     opts.Timeout,
-		Auth:        nfs.Auth{UID: 65534, GID: 65534},
+		Auth:        nfs.Auth{UID: opts.UID, GID: opts.GID, Groups: opts.Groups},
+		Security:    opts.Security,
+		Kerberos:    opts.Kerberos,
 	}
 
 	tctx, cancel := context.WithTimeout(ctx, opts.Timeout*3)
