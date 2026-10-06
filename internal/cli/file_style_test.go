@@ -71,6 +71,10 @@ func TestListingShowsLinkTargetsAndRestoresIdentity(t *testing.T) {
 		if err := os.Symlink(link.target, filepath.Join(root, "dir", link.name)); err != nil {
 			t.Skipf("symlinks unavailable: %v", err)
 		}
+		// On Windows, go-nfs/osfs may return backslash targets; skip if not portable.
+		if got, err := os.Readlink(filepath.Join(root, "dir", link.name)); err != nil || strings.ContainsAny(got, "\\") {
+			t.Skipf("symlink target %q reads back as %q (not portable): %v", link.target, got, err)
+		}
 	}
 	sh.Session.AutoUID = true
 	_, beforeErr := sh.Session.LS(context.Background(), "dir")

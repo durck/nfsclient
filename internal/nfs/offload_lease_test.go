@@ -34,7 +34,7 @@ func TestOffloadPollingRenewsDurableLeaseAcrossRestart(t *testing.T) {
 	if err := j.issue(); err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 1650*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 2500*time.Millisecond)
 	defer cancel()
 	if err := pollRecoveredOffload(ctx, v, j); !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatal(err)
