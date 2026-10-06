@@ -132,10 +132,12 @@ func (ctx *Acceptor) Accept(input []byte) ([]byte, bool, error) {
 		return nil, false, errors.New("received kerberos error")
 	}
 
-	// FIXME check invalid token ID
+	if apreq.IsAPRep() {
+		return nil, false, errors.New("received AP-REP: token only valid from acceptor to initiator")
+	}
 
 	if !apreq.IsAPReq() {
-		return nil, false, errors.New("didn't receive an AP-REQ")
+		return nil, false, errors.New("unrecognized GSS-API token type")
 	}
 
 	var kt *keytab.Keytab
@@ -151,7 +153,6 @@ func (ctx *Acceptor) Accept(input []byte) ([]byte, bool, error) {
 
 	var output []byte
 
-	// if _, err := apreq.APReq.Verify(kt, ctx.clockSkew, FIXME, nil); err != nil {
 	if err = verifyAPReq(&apreq.APReq, kt, ctx.clockSkew, ctx.principal); err != nil {
 		var krbError messages.KRBError
 
