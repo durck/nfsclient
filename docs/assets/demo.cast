@@ -1,5 +1,5 @@
-{"version": 2, "width": 100, "height": 32, "title": "nfs-viewer: local NFSv4.1 transfer demo", "duration": 22.5}
-[0.0, "o", "nfs-viewer: NFSv4.1 upload, list, preview and download\r\nLocal disposable NFS-Ganesha server; batch command captions.\r\n\r\n"]
+{"version": 2, "width": 100, "height": 32, "title": "nfsclient: local NFSv4.1 transfer demo", "duration": 22.5}
+[0.0, "o", "nfsclient: NFSv4.1 upload, list, preview and download\r\nLocal disposable NFS-Ganesha server; batch command captions.\r\n\r\n"]
 [1.0, "o", "command: mkdir demo\r\n"]
 [4.5, "o", "\r\n"]
 [4.5, "o", "command: put greeting.txt demo/greeting.txt\r\n"]
@@ -9,7 +9,7 @@
 [8.5, "o", "  NAME          SIZE  PERMISSIONS  OWNER                              MODIFIED\r\n  ------------------------------------------------------------------------------------\r\n  greeting.txt  23 B  -rw-r--r--   root@localdomain:root@localdomain  2026-10-06 12:25\r\n\r\n  1 entries · 0 directories · 1 other\r\n\r\n"]
 [11.5, "o", "\r\n"]
 [11.5, "o", "command: cat demo/greeting.txt\r\n"]
-[12.0, "o", "Hello from nfs-viewer!\r\n"]
+[12.0, "o", "Hello from nfsclient!\r\n"]
 [15.0, "o", "\r\n"]
 [15.0, "o", "command: get demo/greeting.txt received.txt\r\n"]
 [15.5, "o", "  DONE  GET | 23 B | 1s | avg 3.1 KiB/s\r\n"]

@@ -17,10 +17,12 @@ by topic. See [contributing](CONTRIBUTING.md) and the [security policy](SECURITY
 Licensed under [MIT](LICENSE). Adapted GSS/Kerberos components retain their
 original notices; binary distributions also include third-party licenses.
 
-[Watch the terminal demo](docs/assets/demo.cast) with
-`asciinema play docs/assets/demo.cast`: a real local NFSv4.1 upload, listing,
-preview and download. Command captions and pauses were added for readability;
-output comes from the disposable Ganesha fixture. Downloaded bytes were verified.
+![Terminal demo: mkdir, put, ls, cat, get over NFSv4.1](docs/assets/demo.gif)
+
+[Download the asciinema recording](docs/assets/demo.cast) for a full-resolution
+replay (`asciinema play docs/assets/demo.cast`). A real local NFSv4.1 upload,
+listing, preview and download against a disposable Ganesha fixture. Downloaded
+bytes were verified.
 
 ## Install from a release
 
