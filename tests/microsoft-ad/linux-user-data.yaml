@@ -1,0 +1,63 @@
+#cloud-config
+hostname: nfs
+fqdn: nfs.msad.nfs.test
+manage_etc_hosts: true
+preserve_hostname: false
+disable_root: true
+ssh_pwauth: false
+ssh_deletekeys: true
+ssh_genkeytypes: [ed25519]
+ssh:
+  emit_keys_to_console: false
+users:
+  - name: labadmin
+    gecos: Disposable NFS lab administrator
+    groups: [adm, sudo]
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    shell: /bin/bash
+    lock_passwd: true
+    ssh_authorized_keys:
+      - __LAB_SSH_PUBLIC_KEY__
+package_update: false
+package_upgrade: false
+package_reboot_if_required: false
+write_files:
+  - path: /usr/local/sbin/nfs-lab-bootstrap-evidence
+    owner: root:root
+    permissions: '0700'
+    content: |
+      #!/usr/bin/python3
+      import json
+      import pathlib
+      import subprocess
+
+      def output(*args):
+          return subprocess.check_output(args, text=True).strip()
+
+      evidence = {
+          "stage": "linux-bootstrap-only",
+          "hostname": output("hostname", "-f"),
+          "os_release": pathlib.Path("/etc/os-release").read_text(),
+          "kernel": output("uname", "-r"),
+          "addresses": json.loads(output("ip", "-j", "address", "show")),
+          "ipv4_routes": json.loads(output("ip", "-4", "-j", "route", "show")),
+          "ipv6_routes": json.loads(output("ip", "-6", "-j", "route", "show")),
+          "domain_joined": False,
+          "nfs_verified": False,
+      }
+      routes = evidence["ipv4_routes"] + evidence["ipv6_routes"]
+      if any(route.get("dst") == "default" for route in routes):
+          raise SystemExit("NFS_LAB_BOOT_REFUSED: unexpected default route")
+      text = json.dumps(evidence, sort_keys=True)
+      pathlib.Path("/var/lib/nfs-lab-bootstrap.json").write_text(text + "\n")
+      with open("/dev/ttyS0", "w") as serial:
+          serial.write("NFS_LAB_BOOT_EVIDENCE " + text + "\n")
+          serial.write("NFS_LAB_BOOT_COMPLETE\n")
+runcmd:
+  - [/usr/local/sbin/nfs-lab-bootstrap-evidence]
+final_message: 'NFS lab cloud-init bootstrap finished; AD join and NFS validation remain pending.'
+power_state:
+  mode: poweroff
+  delay: now
+  timeout: 120
+  condition: true

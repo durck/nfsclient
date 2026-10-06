@@ -1,0 +1,8 @@
+bin/
+.git/
+**/__pycache__/
+**/.pytest_cache/
+**/*.py[cod]
+**/*.test
+**/*.test.exe
+coverage.out

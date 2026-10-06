@@ -1,0 +1,4 @@
+/data (rw,insecure,no_root_squash)
+/squashed (rw,insecure,root_squash)
+/readonly (ro,insecure,no_root_squash)
+/secure (rw,secure,no_root_squash)

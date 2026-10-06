@@ -1,0 +1,10 @@
+ARG BASE_IMAGE=nfs-viewer-vfs-test
+FROM nfs-viewer-vfs-test AS build
+# Use the distro's authenticated source package matching the packaged baseline.
+RUN sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/ubuntu.sources && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends build-essential cmake bison flex libacl1-dev libblkid-dev libcap-dev libdbus-1-dev libkrb5-dev liburcu-dev uuid-dev libntirpc-dev libnfsidmap-dev libwbclient-dev
+WORKDIR /source
+RUN apt-get source nfs-ganesha=4.3-8ubuntu1
+RUN cmake -S /source/nfs-ganesha-4.3/src -B /build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DUSE_SYSTEM_NTIRPC=ON -DUSE_FSAL_VFS=ON -DENABLE_VFS_POSIX_ACL=ON -DENABLE_VFS_DEBUG_ACL=OFF -DUSE_FSAL_CEPH=OFF -DUSE_FSAL_GLUSTER=OFF -DUSE_FSAL_GPFS=OFF -DUSE_FSAL_LUSTRE=OFF -DUSE_FSAL_XFS=OFF -DUSE_FSAL_RGW=OFF -DUSE_FSAL_PROXY_V3=OFF -DUSE_FSAL_PROXY_V4=OFF -DUSE_FSAL_MEM=OFF -DUSE_FSAL_NULL=OFF -DUSE_9P=OFF -DUSE_NFS_RDMA=OFF -DUSE_MAN_PAGE=OFF && grep -q '^ENABLE_VFS_POSIX_ACL:BOOL=ON$' /build/CMakeCache.txt && cmake --build /build -j4 && DESTDIR=/stage cmake --install /build
+FROM ${BASE_IMAGE}
+COPY --from=build /stage/usr/ /usr/
+RUN ldconfig

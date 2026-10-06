@@ -1,0 +1,27 @@
+name: Bug report
+description: Report a reproducible client problem.
+body:
+  - type: markdown
+    attributes:
+      value: "For suspected vulnerabilities, follow SECURITY.md. Do not attach credentials or private keys."
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Client revision, OS, server/version, NFS version, transport and authentication profile.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Minimal commands and setup, with private values redacted.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected and actual result
+      description: Include the exact error and relevant sanitized output.
+    validations:
+      required: true

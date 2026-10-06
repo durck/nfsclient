@@ -1,0 +1,17 @@
+name: Feature request
+description: Propose a bounded client capability or workflow improvement.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+      description: What operation cannot be completed, and what workaround exists?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior and acceptance criteria
+      description: Include relevant server/protocol versions and how success could be verified.
+    validations:
+      required: true

@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+      - name: Download dependencies
+        run: go mod download
+      - name: Check formatting
+        shell: python
+        run: |
+          import subprocess
+          result = subprocess.run(["gofmt", "-l", "."], check=True, capture_output=True, text=True)
+          if result.stdout.strip():
+              raise SystemExit("Unformatted Go files:\n" + result.stdout)
+      - name: Install analysis tools
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
+          go install golang.org/x/vuln/cmd/govulncheck@v1.8.0
+      - name: Static analysis
+        run: staticcheck ./...
+      - name: Vulnerability analysis
+        run: govulncheck ./...
+      - name: Self-check (vet, race, Python, build and CLI scenarios)
+        run: python -B tests/selfcheck.py
+      - name: Assemble binary and notices
+        shell: python
+        run: |
+          import hashlib
+          import platform
+          import shutil
+          from pathlib import Path
+          binary = "nfs-viewer-windows-amd64.exe" if platform.system() == "Windows" else "nfs-viewer-linux-amd64"
+          output = Path("bin/distribution")
+          output.mkdir()
+          for source in (Path("bin") / binary, Path("bin/THIRD-PARTY-LICENSES.txt"), Path("LICENSE")):
+              shutil.copyfile(source, output / source.name)
+          checksums = "".join(hashlib.sha256(p.read_bytes()).hexdigest() + "  " + p.name + "\n" for p in sorted(output.iterdir()))
+          (output / "SHA256SUMS").write_text(checksums, encoding="utf-8", newline="\n")
+      - name: Upload build
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: nfs-viewer-${{ runner.os }}-amd64
+          path: bin/distribution/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload check evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: checks-${{ runner.os }}
+          path: |
+            bin/verification/*-summary.json
+            bin/verification/*-vet.log
+            bin/verification/*-race.log
+            bin/verification/*-python-*.log
+            bin/verification/*-build.log
+            bin/verification/*-licenses.log
+            bin/verification/*-help.log
+            bin/verification/*-release.log
+          if-no-files-found: ignore
+          retention-days: 14

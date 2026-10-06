@@ -1,0 +1,8 @@
+FROM nfs-viewer-nfs2-kernel AS module-build
+COPY . /repo
+RUN apt-get -o APT::Update::Error-Mode=any update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends linux-headers-amd64 linux-source-6.1 build-essential libelf-dev
+RUN set -eu; kernel=$(basename /lib/modules/*); mkdir /tmp/nfsd-source; tar -xJf /usr/src/linux-source-6.1.tar.xz -C /tmp/nfsd-source linux-source-6.1/fs/nfsd linux-source-6.1/fs/internal.h; cp /tmp/nfsd-source/linux-source-6.1/fs/internal.h /tmp/internal.h; mv /tmp/nfsd-source/linux-source-6.1/fs/nfsd /tmp/nfsd; make -j4 -C /lib/modules/$kernel/build M=/tmp/nfsd CONFIG_NFSD_V2=y CONFIG_NFSD_V2_ACL=y KCFLAGS='-DCONFIG_NFSD_V2=1 -DCONFIG_NFSD_V2_ACL=1 -I/tmp/nfsd' modules; cp /lib/modules/$kernel/kernel/fs/nfsd/nfsd.ko /opt/nfsd-original.ko; cp /tmp/nfsd/nfsd.ko /lib/modules/$kernel/kernel/fs/nfsd/nfsd.ko; depmod $kernel; printf 'Debian Linux 6.1.176-1, stock fs/nfsd sources; CONFIG_NFSD_V2=y, CONFIG_NFSD_V2_ACL=y; KCFLAGS=-DCONFIG_NFSD_V2=1 -DCONFIG_NFSD_V2_ACL=1\n' > /opt/nfsd-v2-build.txt; rm -rf /repo /tmp/nfsd /tmp/nfsd-source
+
+FROM nfs-viewer-nfs2-kernel
+COPY --from=module-build /lib/modules/ /lib/modules/
+COPY --from=module-build /opt/nfsd-v2-build.txt /opt/nfsd-v2-build.txt
