@@ -26,6 +26,16 @@ until a tagged release is published.
 - Windows/Linux CI, standalone binary artifacts with checksums and dependency
   notices, contributor guidance and private vulnerability-reporting guidance.
 - MIT license for project code and a recorded local NFSv4.1 transfer demo.
+- Multi-host NFS scan subcommand (`nfs-viewer scan`) with CIDR/range/file target
+  parsing, concurrent probing (configurable `--concurrency`), automatic IP-restriction
+  detection (NFS status 13 on MOUNT), no_root_squash detection via UID 0 spoofing, and
+  root-handle escape checks for NFSv2/v3 (knfsd handle heuristic) and NFSv4 (PUTROOTFH
+  pseudo-root probe).  Output in human-readable table or JSON.
+- PKCS12/PFX certificate format for PKINIT: `--pkinit-pfx` and `--pkinit-pfx-password`
+  extract the leaf certificate and private key into session-scoped temporary PEM files.
+- Password-based Kerberos initial authentication via `--password`; `--domain` qualifies
+  a bare `--principal` with an explicit realm, matching Windows domain conventions.
+  Both flags are available on the main command and on `scan`.
 
 ### Fixed
 

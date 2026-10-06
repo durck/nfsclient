@@ -129,10 +129,21 @@ sunrpc ALPN remain mandatory; no plaintext fallback or UDP/DTLS is provided.
 ## Kerberos
 
 ```sh
+# keytab
 ./bin/nfs-viewer-linux-amd64 nfs.example.test --export /data \
   --nfs-version 4.1 --sec krb5p --principal alice@EXAMPLE.TEST \
   --spn nfs/nfs.example.test --krb5-config /absolute/krb5.conf \
   --keytab /absolute/alice.keytab --auto-escape=false
+
+# password / Windows domain
+./bin/nfs-viewer-linux-amd64 nfs.example.test --export /data \
+  --nfs-version 4.1 --sec krb5 --principal alice --domain CORP.LOCAL \
+  --password "s3cr3t"
+
+# PKCS12/PFX certificate
+./bin/nfs-viewer-linux-amd64 nfs.example.test --export /data \
+  --nfs-version 4.1 --sec krb5p --principal alice@EXAMPLE.TEST \
+  --pkinit-pfx alice.pfx --pkinit-pfx-password "pfxpassword"
 ```
 
 `krb5`, `krb5i` and `krb5p` select authentication, integrity and privacy.
@@ -150,10 +161,59 @@ For explicit foreign-realm allowlisting and ordered routes, see the
 | Pinned same-realm canonical AS alias | [AS canonicalization](docs/AUTHENTICATION.md#pinned-as-aliases) |
 | Explicit approved enterprise-UPN realm routing | [Enterprise UPN](docs/AUTHENTICATION.md#enterprise-upn-routing) |
 | Windows/Linux required FAST with keytab and FILE armor | [FAST profile](docs/AUTHENTICATION.md#linux-required-fast) |
-| Windows/Linux PKINIT with file certificate/key | [PKINIT profile](docs/AUTHENTICATION.md#linux-pkinit) |
+| Windows/Linux PKINIT with file certificate/key (PEM) or PKCS12/PFX (`--pkinit-pfx`) | [PKINIT profile](docs/AUTHENTICATION.md#linux-pkinit) |
+| Kerberos password authentication via `--password`; `--domain` qualifies a bare principal | n/a — AS-REQ password sent to KDC directly |
 
 These profiles have explicit bounds; they do not promise universal SSPI,
 directory/forest, smart-card or NAS interoperability.
+
+## Network scan
+
+The `scan` subcommand probes one or more hosts for NFS services, lists their exports and
+checks for common misconfigurations without requiring an OS-level mount:
+
+```sh
+# single host
+nfs-viewer scan 192.168.1.10
+
+# CIDR range under AUTH_SYS UID 0
+nfs-viewer scan 192.168.0.0/24 --uid 0
+
+# Kerberos password auth
+nfs-viewer scan 10.0.0.0/24 --sec krb5 --principal user --domain CORP.LOCAL --password Secret
+
+# targets from file, JSON output
+nfs-viewer scan -f targets.txt --output json
+```
+
+Target formats accepted as positional arguments or via `--file`:
+
+| Syntax | Example |
+| --- | --- |
+| Single IP | `192.168.1.10` |
+| CIDR block | `10.0.0.0/24` |
+| Explicit range | `10.0.0.1-10.0.0.20` |
+| Last-octet shorthand | `10.0.0.1-20` |
+| Hostname | `nfs.example.test` |
+| File (`-f`) | one target per line; `#` comments ignored |
+
+For each reachable host the scan reports:
+
+- Discovered NFS version and transport.
+- All advertised exports with the client-allow list from `showmount`.
+- **IP restriction** — NFS status 13 returned by `MOUNT` is detected automatically
+  and the export is marked `IP_RESTRICTED`.
+- **no\_root\_squash** — a temporary file is created as UID 0; if the server reports
+  stored UID 0 the flag is active.
+- **Root-handle escape** — NFSv2/v3 uses the knfsd v1 handle heuristic;
+  NFSv4 probes the pseudo-root via `PUTROOTFH`.
+
+Output is a human-readable table (default) or structured JSON (`--output json`).
+Scan supports the same auth flags as the main command: `--uid`, `--gid`, `--groups`,
+`--sec`, `--principal`, `--keytab`, `--password`, `--domain` and `--krb5-config`.
+`--concurrency` (default 20) controls simultaneous connections; `--timeout`
+(default 5 s) limits per-host attempts.  `--no-squash-check` and `--no-escape-check`
+skip the respective probes when speed is more important than coverage.
 
 ## Advanced commands
 
