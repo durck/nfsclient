@@ -62,6 +62,8 @@ ignored `bin/` or a separate local archive. They are not needed to build or run
 the default self-check from a source checkout. Reproducing a historical native
 run requires its original inputs; current support is described by
 [compatibility](COMPATIBILITY.md), not by an archived binary or old test count.
+Keep temporary Go reproducers as `.go.txt` or in underscore-prefixed directories:
+Git ignore rules do not exclude `.go` files from `go test ./...` or `go vet ./...`.
 
 Current executable names are `bin/nfsclient-windows-amd64.exe` and
 `bin/nfsclient-linux-amd64`. Distributions must include the root `LICENSE` and
@@ -94,6 +96,11 @@ separate journal boundaries. Successful recovery polling must persist renewed
 lease evidence from request start, and bounded journals must not exhaust storage
 solely while waiting for a supported long operation. A crash fixture must retain open file ownership
 through process termination; GC can otherwise release its lock early.
+A checkpoint message is not a crash barrier while background lease renewal is
+active: another SEQUENCE can mark the journal pending before the process exits.
+Lease-renewal crash tests therefore verify durable confirmation in the actual
+crash journal and stop at an observed cached WRITE boundary. A separate pending
+renewal case checks that unresolved state remains quarantined.
 Restore ownership before final mode/ACL, because chown may clear special bits.
 
 Credential deep copies must retain fields deliberately omitted from JSON:

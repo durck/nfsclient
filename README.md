@@ -185,6 +185,7 @@ exports
 exports --recursive --depth 5 --max-entries 5000 --discovery-timeout 20s
 exports --json
 exports --path /backup --path /home/team
+exports --paths-file paths.txt
 ```
 
 The default NFSv4 depth is 1; `--recursive` selects 3 unless `--depth` is given.
@@ -193,6 +194,13 @@ when a parent denies listing. Explicit paths are independent of traversal depth
 but share the time/entry budget and are limited to 64 components. NFSv2/v3 use
 the longest advertised ancestor export or try the supplied path as a MOUNT root;
 a hidden mount root cannot be inferred from an arbitrary file path.
+`--paths-file` (unreleased; build from source) adds paths from a local UTF-8 file,
+one absolute server path per line. An initial UTF-8 BOM and CRLF are accepted;
+surrounding whitespace, blank lines and full-line `#` comments are ignored.
+Relative filenames in the shell use the directory selected by `lcd`. File paths
+and repeated `--path` values share `--max-entries`; duplicate lines count too.
+Files are limited to 16 MiB, raw lines to less than 64 KiB and paths to 4096 bytes.
+Invalid input rejects the whole list before discovery; no partial list is used.
 Discovery defaults to 1000 examined entries (files count too) and 10 seconds.
 Depth is limited to 64 and the entry budget to 100000. Legacy temporary MOUNT
 registrations get up to 2 additional seconds for cleanup. Existing mounts,
@@ -288,6 +296,12 @@ nfsclient scan 10.0.0.0/24 --sec krb5 --principal user --domain CORP.LOCAL --pas
 
 # targets from file, JSON output
 nfsclient scan -f targets.txt --output json
+
+# domain-root discovery (unreleased; build from source)
+nfsclient scan --dns-domain example.test --dns-server 192.0.2.53 --no-squash-check --no-escape-check
+
+# known paths, including paths below directories that cannot be listed
+nfsclient scan 192.168.1.10 --paths-file paths.txt --no-squash-check --no-escape-check
 ```
 
 Target formats accepted as positional arguments or via `--file`:
@@ -300,6 +314,24 @@ Target formats accepted as positional arguments or via `--file`:
 | Last-octet shorthand | `10.0.0.1-20` |
 | Hostname | `nfs.example.test` |
 | File (`-f`) | one target per line; `#` comments ignored |
+
+`--dns-domain` can supply all targets or supplement positional/file targets.
+It queries `_nfs-domainroot._tcp.DOMAIN`, as specified by
+[RFC 6641](https://www.rfc-editor.org/rfc/rfc6641.html#section-3), preserving each
+advertised hostname and port. Auto negotiation for these targets tries NFSv4.2,
+4.1 and 4.0 only; explicit NFSv2/v3 is rejected. Each discovered server also gets
+an explicit check of `/.domainroot/DOMAIN` within the normal discovery budget.
+The scan visits all published endpoints; DNS domain roots are not an inventory
+of every NFS server or export in the domain.
+
+A positive `--nfs-port` overrides SRV ports; zero keeps the advertised ports.
+Equivalent endpoints are coalesced, while different ports/domain roots remain
+distinct. Missing SRV records, a `.` target (service unavailable), or malformed
+endpoints stop the invocation before any NFS probes, including when other
+targets were supplied. `--timeout` also bounds the SRV lookup. `--dns-server`
+is used throughout discovery and subsequent connection name resolution, with
+no fallback to system DNS when an explicit server is selected. These options
+and `--paths-file` are available in source builds after v0.1.0.
 
 For each reachable host the scan reports:
 
@@ -326,6 +358,8 @@ probes run on advertised exports or observed filesystem boundaries, not every
 directory. JSON includes `source`, `identity`, `discovery_complete`,
 `discovery_issues`, `can_list` and `can_traverse`; `allowed_clients` is retained
 for compatibility and contains only advertised MOUNT rules.
+Host results also include `nfs_port` when a port was explicitly selected or
+advertised by SRV, and `domain_root` for DNS-discovered targets.
 
 ## Advanced commands
 

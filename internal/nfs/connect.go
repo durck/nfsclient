@@ -42,6 +42,14 @@ func connectProfile(ctx context.Context, cfg Config, reclaimFrom *v4Client) (*Cl
 }
 
 func connectStateProfile(ctx context.Context, cfg Config, reclaimFrom, migrateFrom *v4Client) (*Client, error) {
+	if cfg.V4Only {
+		if cfg.Version == "2" || cfg.Version == "3" || cfg.Transport == "udp" {
+			return nil, errors.New("NFSv4-only connections require a v4 version and TCP or iWARP")
+		}
+		if cfg.Version == "" {
+			cfg.Version = "auto"
+		}
+	}
 	if err := validateNLMConfig(cfg); err != nil {
 		return nil, err
 	}
@@ -110,6 +118,9 @@ func connectStateProfile(ctx context.Context, cfg Config, reclaimFrom, migrateFr
 	}
 	if cfg.Version == "auto" {
 		versions = []string{"4.2", "4.1", "4.0", "3", "2"}
+		if cfg.V4Only {
+			versions = versions[:3]
+		}
 		if cfg.Transport == "udp" {
 			versions = []string{"3", "2"}
 		}

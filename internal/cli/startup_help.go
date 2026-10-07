@@ -177,19 +177,20 @@ func installScanHelp(cmd *cobra.Command, out io.Writer) {
 
 func printScanHelp(cmd *cobra.Command, out io.Writer, all bool) {
 	fmt.Fprintln(out, cmd.Long)
-	fmt.Fprintln(out, "\nUsage:\n  nfsclient scan [flags] <targets...>\n\nTargets: IP, CIDR, IP range, last-octet range, or --file PATH.")
+	fmt.Fprintln(out, "\nUsage:\n  nfsclient scan [flags] [targets...]\n\nTargets: IP, hostname, CIDR, IP range, --file PATH, or --dns-domain DOMAIN.")
 	if all {
 		fmt.Fprintln(out, "\nTarget examples:\n  192.168.1.10          Single IP\n  192.168.1.0/24        CIDR range\n  10.0.0.1-10.0.0.20   Explicit range\n  10.0.0.1-20          Last-octet range\nTarget files contain one target per line; lines starting with # are ignored.")
 		fmt.Fprintln(out, "\nPermission denied does not establish an IP restriction. Advertised MOUNT client\nrules are shown separately; NFSv4 does not advertise these rules. Discovery is\nbounded and reports partial results. Use --recursive or --depth for deeper walks.")
+		fmt.Fprintln(out, "\nDNS domain discovery uses _nfs-domainroot._tcp (RFC 6641), the advertised ports\nand /.domainroot/DOMAIN. Auto selects NFSv4 only for these targets; --nfs-port\noverrides their ports. --dns-server applies to SRV, NFS and Kerberos lookups.\n--paths-file reads local UTF-8 absolute paths, one per line; blank lines and\nlines starting with # are ignored. It shares the --path entry budget.")
 		for _, group := range scanHelpGroups {
 			fmt.Fprintf(out, "\n%s:\n", group.title)
 			printSelectedFlags(out, cmd, group.flags)
 		}
 	} else {
 		fmt.Fprintln(out, "\nTargets and output:")
-		printSelectedFlags(out, cmd, []string{"file", "nfs-version", "timeout", "concurrency", "output"})
+		printSelectedFlags(out, cmd, []string{"file", "dns-domain", "nfs-version", "timeout", "concurrency", "output"})
 		fmt.Fprintln(out, "\nDiscovery and identity:")
 		printSelectedFlags(out, cmd, []string{"recursive", "path", "no-squash-check", "no-escape-check", "uid", "sec"})
 	}
-	fmt.Fprintln(out, "\nExamples:\n  nfsclient scan 192.168.1.0/24\n  nfsclient scan --file hosts.txt --output json\n  nfsclient scan 192.168.1.10 --no-squash-check --no-escape-check\n\nAll scan options: nfsclient help scan  (or nfsclient scan --help-all)")
+	fmt.Fprintln(out, "\nExamples:\n  nfsclient scan 192.168.1.0/24\n  nfsclient scan --file hosts.txt --output json\n  nfsclient scan --dns-domain example.test --no-squash-check --no-escape-check\n  nfsclient scan 192.168.1.10 --paths-file paths.txt --no-squash-check --no-escape-check\n\nAll scan options: nfsclient help scan  (or nfsclient scan --help-all)")
 }

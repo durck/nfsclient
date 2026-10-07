@@ -22,27 +22,58 @@ func discoveryFlags(f *pflag.FlagSet, o *nfs.DiscoveryOptions, recursive *bool) 
 	f.DurationVar(&o.Timeout, "discovery-timeout", o.Timeout, "Total discovery time budget")
 }
 
-// loadPathsFile reads an absolute-path wordlist (one per line, # comments) and
-// appends valid entries to o.Paths. It does not deduplicate; DiscoveryOptions.Validate
-// will reject paths that exceed the budget.
+const maxPathsFileBytes = 16 * 1024 * 1024
+
+// loadPathsFile reads an absolute-path wordlist (one per line, # comments).
+// Entries are trimmed, validated and counted before committing the whole list.
+// Byte and scanner line limits also bound files containing only comments or blanks.
 func loadPathsFile(file string, o *nfs.DiscoveryOptions) error {
 	if file == "" {
 		return nil
 	}
+	if err := o.Validate(); err != nil {
+		return fmt.Errorf("paths-file %s: %w", file, err)
+	}
 	f, err := os.Open(file)
 	if err != nil {
-		return fmt.Errorf("open paths-file: %w", err)
+		return fmt.Errorf("open paths-file %s: %w", file, err)
 	}
 	defer f.Close()
-	sc := bufio.NewScanner(f)
+	input := &io.LimitedReader{R: f, N: maxPathsFileBytes + 1}
+	sc := bufio.NewScanner(input)
+	var paths []string
+	lineNumber := 0
 	for sc.Scan() {
-		line := strings.TrimSpace(sc.Text())
+		lineNumber++
+		if input.N == 0 {
+			return fmt.Errorf("paths-file %s: line %d: exceeds %d byte limit", file, lineNumber, maxPathsFileBytes)
+		}
+		line := sc.Text()
+		if lineNumber == 1 {
+			line = strings.TrimPrefix(line, "\ufeff")
+		}
+		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		o.Paths = append(o.Paths, line)
+		if len(o.Paths)+len(paths) >= o.MaxEntries {
+			return fmt.Errorf("paths-file %s: line %d: known paths exceed discovery max-entries (%d)", file, lineNumber, o.MaxEntries)
+		}
+		candidate := *o
+		candidate.Paths = []string{line}
+		if err := candidate.Validate(); err != nil {
+			return fmt.Errorf("paths-file %s: line %d: %w", file, lineNumber, err)
+		}
+		paths = append(paths, line)
 	}
-	return sc.Err()
+	if input.N == 0 {
+		return fmt.Errorf("paths-file %s: line %d: exceeds %d byte limit", file, lineNumber+1, maxPathsFileBytes)
+	}
+	if err := sc.Err(); err != nil {
+		return fmt.Errorf("paths-file %s: line %d: %w", file, lineNumber+1, err)
+	}
+	o.Paths = append(o.Paths, paths...)
+	return nil
 }
 
 func (s *Shell) discoverExports(ctx context.Context, args []string) error {
@@ -59,7 +90,7 @@ func (s *Shell) discoverExports(ctx context.Context, args []string) error {
 		return fmt.Errorf("usage: exports [--path /known/path] [--paths-file FILE] [--recursive] [--depth N] [--max-entries N] [--discovery-timeout D] [--json]")
 	}
 	if pf, _ := f.GetString("paths-file"); pf != "" {
-		if err := loadPathsFile(pf, &o); err != nil {
+		if err := loadPathsFile(s.local(pf), &o); err != nil {
 			return err
 		}
 	}

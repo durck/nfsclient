@@ -39,6 +39,7 @@ type Config struct {
 	Transport                             string
 	UDPSize                               uint32 // zero selects the 4096-byte default
 	Version                               string
+	V4Only                                bool // Restrict auto negotiation to NFSv4; reject explicit legacy versions.
 	PortmapPort, MountPort, NFSPort       int
 	NLMPort                               int    // zero discovers NLM on the connected NFS peer
 	NLMClientIP, NLMListenIP, NLMStateDir string // explicit embedded NSM profile

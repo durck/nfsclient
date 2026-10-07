@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -14,6 +16,139 @@ import (
 	"nfsclient/internal/nfs"
 	"nfsclient/internal/scan"
 )
+
+func TestLoadPathsFileFormats(t *testing.T) {
+	for _, bom := range []string{"", "\ufeff"} {
+		file := filepath.Join(t.TempDir(), "paths.txt")
+		if err := os.WriteFile(file, []byte(bom+"# comment\r\n\r\n /hidden/name \r\n/with space\r\n/hash#literal\n"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		o := nfs.DefaultDiscoveryOptions()
+		o.Paths = []string{"/explicit"}
+		o.MaxEntries = 4
+		if err := loadPathsFile(file, &o); err != nil {
+			t.Fatal(err)
+		}
+		if want := []string{"/explicit", "/hidden/name", "/with space", "/hash#literal"}; !reflect.DeepEqual(o.Paths, want) {
+			t.Fatalf("paths = %q, want %q", o.Paths, want)
+		}
+	}
+}
+
+func TestLoadPathsFileRejectsTransactionally(t *testing.T) {
+	for _, tc := range []struct{ name, input, want string }{
+		{"relative", "/valid\nrelative\n", "line 2"},
+		{"nul", "/valid\n/bad\x00path\n", "line 2"},
+		{"parent", "/valid\n/../escape\n", "line 2"},
+		{"long-path", "/valid\n/" + strings.Repeat("x", 4096) + "\n", "line 2"},
+		{"deep-path", "/valid\n/" + strings.Repeat("a/", 65) + "\n", "line 2"},
+		{"merged-limit", "/valid\n/second\n/over-limit\n", "line 3"},
+		{"duplicate-limit", "/valid\n/valid\n/valid\n", "line 3"},
+		{"scanner", "/valid\n#" + strings.Repeat("x", 70*1024), "line 2"},
+		{"comment-budget", strings.Repeat("# comment\n", 2*1024*1024), "byte limit"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "paths.txt")
+			if err := os.WriteFile(file, []byte(tc.input), 0600); err != nil {
+				t.Fatal(err)
+			}
+			o := nfs.DefaultDiscoveryOptions()
+			o.MaxEntries, o.Paths = 3, []string{"/explicit"}
+			err := loadPathsFile(file, &o)
+			if err == nil || !strings.Contains(err.Error(), file) || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("error = %v; want filename and %q", err, tc.want)
+			}
+			if !reflect.DeepEqual(o.Paths, []string{"/explicit"}) {
+				t.Fatalf("failed load changed paths: %q", o.Paths)
+			}
+		})
+	}
+}
+
+func TestLoadPathsFileErrors(t *testing.T) {
+	dir := t.TempDir()
+	for _, file := range []string{filepath.Join(dir, "missing.txt"), dir} {
+		o := nfs.DefaultDiscoveryOptions()
+		if err := loadPathsFile(file, &o); err == nil || !strings.Contains(err.Error(), file) {
+			t.Fatalf("load %q: %v", file, err)
+		}
+	}
+	file := filepath.Join(dir, "empty.txt")
+	if err := os.WriteFile(file, nil, 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, limit := range []int{0, -1, 100001} {
+		o := nfs.DefaultDiscoveryOptions()
+		o.MaxEntries = limit
+		if err := loadPathsFile(file, &o); err == nil {
+			t.Fatalf("accepted max-entries %d", limit)
+		}
+	}
+	o := nfs.DefaultDiscoveryOptions()
+	o.Paths = []string{"relative"}
+	if err := loadPathsFile(file, &o); err == nil {
+		t.Fatal("accepted invalid explicit path")
+	}
+	o.Paths = []string{"/first", "/second"}
+	o.MaxEntries = 1
+	if err := loadPathsFile(file, &o); err == nil {
+		t.Fatal("accepted explicit paths exceeding budget")
+	}
+}
+
+func TestLoadPathsFileByteBoundary(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "paths.txt")
+	// Short comment lines reach the byte limit without reaching the line limit.
+	input := strings.Repeat("#"+strings.Repeat("x", 1022)+"\n", 16*1024)
+	for _, extra := range []string{"", "#"} {
+		if err := os.WriteFile(file, []byte(input+extra), 0600); err != nil {
+			t.Fatal(err)
+		}
+		o := nfs.DefaultDiscoveryOptions()
+		o.Paths = []string{"/explicit"}
+		err := loadPathsFile(file, &o)
+		if extra == "" && err != nil || extra != "" && (err == nil || !strings.Contains(err.Error(), "byte limit")) {
+			t.Fatalf("%d bytes: %v", len(input+extra), err)
+		}
+		if !reflect.DeepEqual(o.Paths, []string{"/explicit"}) {
+			t.Fatalf("comment-only input changed paths: %q", o.Paths)
+		}
+	}
+}
+
+func TestExportsPathsFileUsesLocalDir(t *testing.T) {
+	sh, _, out := testShell(t)
+	dir := t.TempDir()
+	if _, err := sh.Execute(context.Background(), "lcd \""+dir+"\""); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "paths.txt"), []byte("/\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, file := range []string{"paths.txt", filepath.Join(dir, "paths.txt")} {
+		out.Reset()
+		if _, err := sh.Execute(context.Background(), "exports --paths-file \""+file+"\" --json"); err != nil {
+			t.Fatal(err)
+		}
+		var report nfs.DiscoveryReport
+		if err := json.Unmarshal(out.Bytes(), &report); err != nil || len(report.Entries) == 0 {
+			t.Fatalf("report %s: %v", out, err)
+		}
+	}
+}
+
+func TestExportsPathsFileHelp(t *testing.T) {
+	for _, command := range []string{"help exports", "exports --help"} {
+		var out bytes.Buffer
+		sh := &Shell{Out: &out}
+		if _, err := sh.Execute(context.Background(), command); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(out.String(), "--paths-file") || !strings.Contains(out.String(), "lcd") {
+			t.Fatalf("missing paths-file usage and local directory semantics: %s", &out)
+		}
+	}
+}
 
 func TestExportsDiscoveryPreservesSession(t *testing.T) {
 	sh, _, out := testShell(t)

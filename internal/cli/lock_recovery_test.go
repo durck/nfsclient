@@ -39,7 +39,7 @@ func TestLockRecoveryChild(t *testing.T) {
 
 func TestLockProcessCrashRecovery(t *testing.T) {
 	for _, minor := range []uint32{1, 2} {
-		for _, mode := range []string{"valid-read", "valid-write", "valid-multi", "valid-lease-renewal", "completed-read", "completed-write", "replayed-write", "replayed-open", "replayed-lock", "pending-read", "pending-write", "pending-unlock", "pending-recovery", "lost-open", "lost-lock", "scope", "unconfirmed", "client-id", "no-session", "path", "revoked-final", "sequence", "changed-profile", "corrupt"} {
+		for _, mode := range []string{"valid-read", "valid-write", "valid-multi", "valid-lease-renewal", "completed-read", "completed-write", "replayed-write", "replayed-open", "replayed-lock", "pending-read", "pending-write", "pending-unlock", "pending-recovery", "pending-lease-renewal", "lost-open", "lost-lock", "scope", "unconfirmed", "client-id", "no-session", "path", "revoked-final", "sequence", "changed-profile", "corrupt"} {
 			t.Run(fmt.Sprintf("4.%d/%s", minor, mode), func(t *testing.T) { runLockProcessCrash(t, minor, mode) })
 		}
 	}
@@ -60,12 +60,14 @@ func runLockProcessCrash(t *testing.T, minor uint32, mode string) {
 	payload := bytes.Repeat([]byte("retained-state-data!"), 200)
 	origin := &migrationWirePeer{origin: true, recovery: true, mode: "not-moved", evidence: x, metadata: referralWirePeer{data: bytes.Clone(payload)}}
 	lifecycle := mode == "replayed-open" || mode == "replayed-lock"
+	leaseRenewal := mode == "valid-lease-renewal" || mode == "pending-lease-renewal"
+	replayWrite := mode == "replayed-write" || mode == "valid-lease-renewal"
 	lostCode := uint32(12)
 	if mode == "replayed-open" {
 		lostCode = 18
 	}
 	targetMode := mode
-	if mode == "completed-read" || mode == "completed-write" || mode == "replayed-write" || lifecycle {
+	if mode == "completed-read" || mode == "completed-write" || replayWrite || lifecycle {
 		targetMode = "valid-read"
 	}
 	target := &migrationWirePeer{recovery: true, mode: targetMode, evidence: x, metadata: referralWirePeer{data: bytes.Clone(payload)}}
@@ -78,6 +80,8 @@ func runLockProcessCrash(t *testing.T, minor uint32, mode string) {
 	issued, release := make(chan struct{}, 1), make(chan struct{})
 	recoveryRelease := make(chan struct{})
 	renewed := make(chan struct{}, 8)
+	renewalArmed := make(chan struct{})
+	var renewalSequence uint32
 	var cachedWriteArgs, cachedWriteReply []byte
 	var cachedPhaseArgs, cachedPhaseReply []byte
 	var cachedPhaseConsumed int
@@ -111,7 +115,7 @@ func runLockProcessCrash(t *testing.T, minor uint32, mode string) {
 			return body, status, operr, handled
 		}
 
-		if mode == "replayed-write" && code == 38 {
+		if replayWrite && code == 38 {
 			cachedWriteArgs = bytes.Clone(d.b)
 			var status uint32
 			var err error
@@ -123,16 +127,24 @@ func runLockProcessCrash(t *testing.T, minor uint32, mode string) {
 			<-release
 			return nil, 0, io.EOF, true
 		}
-		if mode == "valid-lease-renewal" && code == 9 {
+		if leaseRenewal && code == 9 {
 			peek := &missingV4Decoder{b: d.b}
 			if fmt.Sprint(peek.bitmap()) == "[10]" {
 				d.bitmap()
 				return missingV4Opaque(blockCLIBitmap(nil, []uint32{10}), missingV4Words(nil, 1)), 0, nil, true
 			}
 		}
-		if mode == "valid-lease-renewal" && code == 53 && len(d.b) == 32 && origin.locks.Load() > 0 {
+		if leaseRenewal && code == 53 && len(d.b) == 32 {
 			select {
-			case renewed <- struct{}{}:
+			case <-renewalArmed:
+				if renewalSequence == 0 {
+					renewalSequence = wirebinary.BigEndian.Uint32(d.b[16:])
+					renewed <- struct{}{}
+				} else if mode == "pending-lease-renewal" {
+					issued <- struct{}{}
+					<-release
+					return nil, 0, io.EOF, true
+				}
 			default:
 			}
 		}
@@ -144,7 +156,7 @@ func runLockProcessCrash(t *testing.T, minor uint32, mode string) {
 		return origin.operation(code, d, current)
 	}
 	target.base.operationHook = func(code uint32, d *missingV4Decoder, current *string) ([]byte, uint32, error, bool) {
-		if code == 53 && (mode == "pending-write" || mode == "pending-unlock" || (mode == "replayed-write" || lifecycle) && !replayed) {
+		if code == 53 && (mode == "pending-write" || mode == "pending-unlock" || (replayWrite || lifecycle) && !replayed) {
 			id := bytes.Clone(d.take(16))
 			seq := d.word()
 			slot, highest, cache := d.word(), d.word(), d.word()
@@ -176,7 +188,7 @@ func runLockProcessCrash(t *testing.T, minor uint32, mode string) {
 			return body, status, operr, handled
 		}
 
-		if mode == "replayed-write" && code == 38 && !replayed {
+		if replayWrite && code == 38 && !replayed {
 			if !bytes.Equal(d.b, cachedWriteArgs) {
 				return nil, 0, errors.New("crash retry changed original WRITE bytes"), true
 			}
@@ -189,7 +201,7 @@ func runLockProcessCrash(t *testing.T, minor uint32, mode string) {
 			<-recoveryRelease
 			return nil, 0, io.EOF, true
 		}
-		if mode == "valid-lease-renewal" && code == 9 {
+		if leaseRenewal && code == 9 {
 			peek := &missingV4Decoder{b: d.b}
 			if fmt.Sprint(peek.bitmap()) == "[10]" {
 				d.bitmap()
@@ -200,14 +212,14 @@ func runLockProcessCrash(t *testing.T, minor uint32, mode string) {
 	}
 	go func() {
 		err := origin.base.serve(listener)
-		if mode == "completed-write" || mode == "replayed-write" {
+		if mode == "completed-write" || replayWrite {
 			// Publish actual server bytes before this goroutine serves recovery.
 			// A parent-side copy after originalDone has no ordering with reads.
 			copy(target.metadata.data, origin.metadata.data)
 		}
 		originalDone <- err
 		err = target.base.serve(listener)
-		if err == nil && (mode == "replayed-write" || lifecycle) {
+		if err == nil && (replayWrite || lifecycle) {
 			err = target.base.serve(listener)
 		}
 		recoveryDone <- err
@@ -261,7 +273,7 @@ func runLockProcessCrash(t *testing.T, minor uint32, mode string) {
 		ready <- diagnostics.String()
 	}()
 	kind, ranges := "read", ""
-	if strings.Contains(mode, "write") {
+	if strings.Contains(mode, "write") || replayWrite {
 		kind = "write"
 	}
 	if mode == "valid-multi" {
@@ -290,19 +302,21 @@ func runLockProcessCrash(t *testing.T, minor uint32, mode string) {
 	if lifecycle {
 		fmt.Fprintf(stdin, "lock file %s\n", kind)
 	}
-	if mode == "valid-lease-renewal" {
+	if leaseRenewal {
+		close(renewalArmed)
 		select {
 		case <-renewed:
 		case <-ctx.Done():
 			t.Fatal("lease renewal was not sent")
 		}
-		fmt.Fprintf(stdin, "lock-save %s\n", strconv.Quote(journal))
-		waitReady()
 	}
 	if mode == "completed-read" || mode == "pending-read" {
 		fmt.Fprintln(stdin, "cat file")
 	}
-	if mode == "completed-write" || mode == "pending-write" || mode == "replayed-write" {
+	if mode == "completed-write" || mode == "pending-write" || replayWrite {
+		// A cached WRITE gives the renewed client a recoverable crash boundary.
+		// Waiting for lock-save alone leaves the next background renewal free
+		// to persist an unrecoverable pending SEQUENCE before Process.Kill.
 		fmt.Fprintf(stdin, "putrange %s file 0\n", strconv.Quote(patchFile))
 	}
 	if mode == "pending-unlock" {
@@ -312,7 +326,7 @@ func runLockProcessCrash(t *testing.T, minor uint32, mode string) {
 		fmt.Fprintf(stdin, "lock-save %s\n", strconv.Quote(journal))
 		waitReady()
 	}
-	if mode == "pending-read" || mode == "pending-write" || mode == "pending-unlock" || mode == "replayed-write" || lifecycle {
+	if mode == "pending-read" || mode == "pending-write" || mode == "pending-unlock" || mode == "pending-lease-renewal" || replayWrite || lifecycle {
 		select {
 		case <-issued:
 		case <-ctx.Done():
@@ -327,13 +341,16 @@ func runLockProcessCrash(t *testing.T, minor uint32, mode string) {
 	}
 	stdin.Close()
 	releaseOnce.Do(func() { close(release) })
-	if err = <-originalDone; err != nil && !strings.HasPrefix(mode, "pending-") && mode != "replayed-write" && !lifecycle {
+	if err = <-originalDone; err != nil && !strings.HasPrefix(mode, "pending-") && !replayWrite && !lifecycle {
 		var closed *net.OpError
 		if !errors.As(err, &closed) || closed.Op != "read" {
 			t.Fatal("original wire", err)
 		}
 	}
-	if mode == "completed-write" || mode == "replayed-write" {
+	if leaseRenewal {
+		assertLockRenewalCheckpoint(t, journal, renewalSequence)
+	}
+	if mode == "completed-write" || replayWrite {
 		copy(payload, patch)
 		if origin.writes.Load() != 1 || !bytes.Equal(origin.metadata.data, payload) {
 			t.Fatal("completed write did not update original server bytes")
@@ -398,6 +415,9 @@ func runLockProcessCrash(t *testing.T, minor uint32, mode string) {
 	if (recoveryErr == nil) != valid {
 		t.Fatal("wrong recovery outcome", recoveryErr)
 	}
+	if mode == "pending-lease-renewal" && !errors.Is(recoveryErr, nfs.ErrLockJournalPending) && !(binary != "" && strings.Contains(out, nfs.ErrLockJournalPending.Error())) {
+		t.Fatal("interrupted renewal did not retain quarantine", recoveryErr)
+	}
 	if valid {
 		if mode != "valid-multi" {
 			got, err := os.ReadFile(local)
@@ -406,7 +426,7 @@ func runLockProcessCrash(t *testing.T, minor uint32, mode string) {
 			}
 		}
 		binds := int32(1)
-		if mode == "replayed-write" || lifecycle {
+		if replayWrite || lifecycle {
 			binds = 2
 		}
 		if target.unlocks.Load() != count || target.tests.Load() != 1 || target.binds.Load() != binds {
@@ -429,7 +449,7 @@ func runLockProcessCrash(t *testing.T, minor uint32, mode string) {
 		if valid && (r.Retired == lifecycle || r.Pending || r.Locks != 0) {
 			t.Fatal("clean unlock did not retire journal", r)
 		}
-		if mode == "replayed-write" && (r.RecoveredRequest == nil || r.RecoveredRequest.Operation != 38 || r.RecoveredRequest.Status != 0 || r.RecoveredRequest.Count != uint32(len(patch)) || target.writes.Load() != 0 || wirebinary.BigEndian.Uint32(cachedWriteArgs[28:]) != uint32(len(patch))) {
+		if replayWrite && (r.RecoveredRequest == nil || r.RecoveredRequest.Operation != 38 || r.RecoveredRequest.Status != 0 || r.RecoveredRequest.Count != uint32(len(patch)) || target.writes.Load() != 0 || wirebinary.BigEndian.Uint32(cachedWriteArgs[28:]) != uint32(len(patch))) {
 			t.Fatal("cached write receipt or exactly-once evidence differs", r)
 		}
 		if !valid && mode != "changed-profile" && !r.Pending {
@@ -446,4 +466,37 @@ func runLockProcessCrash(t *testing.T, minor uint32, mode string) {
 	if origin.opens.Load() != count || origin.locks.Load() != wantOriginLocks || target.opens.Load() != 0 || target.locks.Load() != wantTargetLocks {
 		t.Fatal("recovery reissued OPEN/LOCK")
 	}
+}
+
+func assertLockRenewalCheckpoint(t *testing.T, path string, sequence uint32) {
+	t.Helper()
+	// Inspect validates the complete journal framing, hashes and record chain.
+	// Read only after the owner was killed: live journals are exclusively locked.
+	if _, err := nfs.InspectLockJournal(path); err != nil {
+		t.Fatal("crashed renewal journal", err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var pendingConfirmed time.Time
+	for len(data) != 0 {
+		n := int(wirebinary.BigEndian.Uint32(data))
+		var record struct {
+			Slot      uint32
+			Pending   bool
+			Confirmed time.Time
+		}
+		if err := json.Unmarshal(data[4:4+n], &record); err != nil {
+			t.Fatal(err)
+		}
+		if record.Slot == sequence && record.Pending {
+			pendingConfirmed = record.Confirmed
+		}
+		if record.Slot == sequence+1 && !record.Pending && !pendingConfirmed.IsZero() && record.Confirmed.After(pendingConfirmed) {
+			return
+		}
+		data = data[4+n+32:]
+	}
+	t.Fatalf("renewal sequence %d has no durable confirmed checkpoint before crash", sequence)
 }

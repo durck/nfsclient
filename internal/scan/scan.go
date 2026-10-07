@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"nfsclient/internal/nfs"
+	"nfsclient/internal/resolve"
 	"nfsclient/internal/session"
 )
 
@@ -31,6 +33,14 @@ type Options struct {
 	Groups   []uint32
 	Security string
 	Kerberos nfs.KerberosConfig
+	DNS      resolve.Config
+}
+
+// Target retains service-discovery endpoint and namespace information.
+type Target struct {
+	Host       string
+	NFSPort    int
+	DomainRoot string
 }
 
 func DefaultOptions() Options {
@@ -66,6 +76,8 @@ type ExportResult struct {
 
 type HostResult struct {
 	Host              string         `json:"host"`
+	NFSPort           int            `json:"nfs_port,omitempty"`
+	DomainRoot        string         `json:"domain_root,omitempty"`
 	Reachable         bool           `json:"reachable"`
 	NFSVersion        string         `json:"nfs_version,omitempty"`
 	Transport         string         `json:"transport,omitempty"`
@@ -82,10 +94,27 @@ type Result struct {
 
 // Run scans hosts concurrently and writes the report to w.
 func Run(ctx context.Context, hosts []string, opts Options, w io.Writer) error {
+	targets := make([]Target, len(hosts))
+	for i, host := range hosts {
+		targets[i] = Target{Host: host}
+	}
+	return RunTargets(ctx, targets, opts, w)
+}
+
+func (opts Options) normalized() Options {
 	if opts.Discovery.MaxDepth == 0 && opts.Discovery.MaxEntries == 0 && opts.Discovery.Timeout == 0 {
 		paths := opts.Discovery.Paths
 		opts.Discovery = nfs.DefaultDiscoveryOptions()
 		opts.Discovery.Paths = paths
+	}
+	return opts
+}
+
+// Validate checks scan settings without contacting DNS or NFS servers.
+func (opts Options) Validate() error {
+	opts = opts.normalized()
+	if err := opts.DNS.Validate(); err != nil {
+		return err
 	}
 	if err := opts.Discovery.Validate(); err != nil {
 		return err
@@ -96,20 +125,99 @@ func Run(ctx context.Context, hosts []string, opts Options, w io.Writer) error {
 	if opts.Output != "text" && opts.Output != "json" {
 		return fmt.Errorf("output must be text or json")
 	}
-	results := make([]HostResult, len(hosts))
+	for _, port := range []int{opts.NFSPort, opts.PortmapPort, opts.MountPort} {
+		if port < 0 || port > 65535 {
+			return fmt.Errorf("scan ports must be 0..65535")
+		}
+	}
+	switch opts.NFSVersion {
+	case "", "auto", "2", "3", "4", "4.0", "4.1", "4.2":
+	default:
+		return fmt.Errorf("invalid NFS version %q", opts.NFSVersion)
+	}
+	return nil
+}
+
+func targetOptions(target Target, opts Options) (Options, error) {
+	opts = opts.normalized()
+	if strings.Trim(strings.TrimSpace(target.Host), ".") == "" {
+		return opts, fmt.Errorf("scan target host must not be empty")
+	}
+	if target.NFSPort < 0 || target.NFSPort > 65535 {
+		return opts, fmt.Errorf("target NFS port must be 0..65535")
+	}
+	if target.NFSPort > 0 {
+		opts.NFSPort = target.NFSPort
+	}
+	if target.DomainRoot != "" {
+		switch opts.NFSVersion {
+		case "", "auto":
+			opts.NFSVersion = "auto"
+		case "2", "3":
+			return opts, fmt.Errorf("DNS domain roots require NFSv4")
+		}
+		found := false
+		for _, p := range opts.Discovery.Paths {
+			found = found || p == target.DomainRoot
+		}
+		if !found {
+			opts.Discovery.Paths = append(append([]string(nil), opts.Discovery.Paths...), target.DomainRoot)
+		}
+	}
+	return opts, opts.Discovery.Validate()
+}
+
+// RunTargets validates all endpoints before scanning, preserving distinct ports
+// and domain roots while coalescing equivalent DNS host names.
+func RunTargets(ctx context.Context, targets []Target, opts Options, w io.Writer) error {
+	opts = opts.normalized()
+	if err := opts.Validate(); err != nil {
+		return err
+	}
+	type preparedTarget struct {
+		target Target
+		opts   Options
+	}
+	var prepared []preparedTarget
+	seen := make(map[Target]bool)
+	for _, target := range targets {
+		perTarget, err := targetOptions(target, opts)
+		if err != nil {
+			return fmt.Errorf("target %q: %w", target.Host, err)
+		}
+		port := perTarget.NFSPort
+		if port == 0 {
+			port = 2049
+		}
+		key := Target{Host: strings.ToLower(strings.TrimSuffix(target.Host, ".")), NFSPort: port, DomainRoot: target.DomainRoot}
+		if !seen[key] {
+			seen[key] = true
+			prepared = append(prepared, preparedTarget{target, perTarget})
+		}
+	}
+	results := make([]HostResult, len(prepared))
 	sem := make(chan struct{}, opts.Concurrency)
 	var wg sync.WaitGroup
 
-	for i, host := range hosts {
+	for i, item := range prepared {
+		select {
+		case <-ctx.Done():
+			wg.Wait()
+			return ctx.Err()
+		case sem <- struct{}{}:
+		}
 		wg.Add(1)
-		sem <- struct{}{}
-		go func(idx int, h string) {
+		go func(idx int, item preparedTarget) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			results[idx] = probeHost(ctx, h, opts)
-		}(i, host)
+			results[idx] = probeEndpoint(ctx, item.target.Host, item.opts, item.target.DomainRoot != "")
+			results[idx].DomainRoot = item.target.DomainRoot
+		}(i, item)
 	}
 	wg.Wait()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 
 	sr := Result{Hosts: results}
 
@@ -124,27 +232,54 @@ func Run(ctx context.Context, hosts []string, opts Options, w io.Writer) error {
 }
 
 func probeHost(ctx context.Context, host string, opts Options) HostResult {
-	result := HostResult{Host: host}
+	return probeEndpoint(ctx, host, opts, false)
+}
+
+func probeEndpoint(ctx context.Context, host string, opts Options, v4Only bool) HostResult {
+	result := HostResult{Host: host, NFSPort: opts.NFSPort}
 
 	// Fast TCP probe before attempting NFS negotiation.
 	probePort := 2049
 	if opts.NFSPort > 0 {
 		probePort = opts.NFSPort
 	}
-	probeTimeout := opts.Timeout / 2
-	if probeTimeout < 500*time.Millisecond {
-		probeTimeout = 500 * time.Millisecond
+	probeCtx, stopProbe := context.WithTimeout(ctx, opts.Timeout)
+	resolver, err := resolve.New(probeCtx, opts.DNS)
+	if err != nil {
+		stopProbe()
+		result.Error = err.Error()
+		return result
 	}
-	portmapUp := opts.PortmapPort > 0 && tcpProbe(host, opts.PortmapPort, probeTimeout)
-	nfsUp := tcpProbe(host, probePort, probeTimeout)
-	if !portmapUp && !nfsUp {
+	// Share one deadline across both probes, including DNS lookup time.
+	// A filtered NFS port must not prevent finding a reachable portmapper.
+	ports := []int{probePort}
+	if opts.PortmapPort > 0 && !v4Only && opts.PortmapPort != probePort {
+		ports = append(ports, opts.PortmapPort)
+	}
+	probes := make(chan bool, len(ports))
+	for _, port := range ports {
+		go func(port int) { probes <- tcpProbe(probeCtx, resolver, host, port) }(port)
+	}
+	up := false
+	for range ports {
+		if <-probes {
+			up = true
+			stopProbe()
+		}
+	}
+	stopProbe()
+	if !up {
 		result.Error = "unreachable"
+		if ctx.Err() != nil {
+			result.Error = ctx.Err().Error()
+		}
 		return result
 	}
 
 	cfg := nfs.Config{
 		Host:        host,
 		Version:     opts.NFSVersion,
+		V4Only:      v4Only,
 		PortmapPort: opts.PortmapPort,
 		NFSPort:     opts.NFSPort,
 		MountPort:   opts.MountPort,
@@ -152,6 +287,7 @@ func probeHost(ctx context.Context, host string, opts Options) HostResult {
 		Auth:        nfs.Auth{UID: opts.UID, GID: opts.GID, Groups: opts.Groups},
 		Security:    opts.Security,
 		Kerberos:    opts.Kerberos,
+		DNS:         opts.DNS,
 	}
 
 	tctx, cancel := context.WithTimeout(ctx, opts.Timeout*3+opts.Discovery.Timeout)
@@ -225,8 +361,9 @@ func probeExport(ctx context.Context, client *nfs.Client, host string, exp nfs.E
 	_ = client.Unmount(ctx, exp.Path)
 }
 
-func tcpProbe(host string, port int, timeout time.Duration) bool {
-	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, fmt.Sprintf("%d", port)), timeout)
+func tcpProbe(ctx context.Context, resolver *net.Resolver, host string, port int) bool {
+	dialer := net.Dialer{Resolver: resolver}
+	conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(host, strconv.Itoa(port)))
 	if err != nil {
 		return false
 	}
@@ -238,14 +375,18 @@ func printText(w io.Writer, r Result, opts Options) {
 	accessible, restricted, vulnerable := 0, 0, 0
 
 	for _, h := range r.Hosts {
+		displayHost := h.Host
+		if h.NFSPort > 0 && h.NFSPort != 2049 {
+			displayHost = net.JoinHostPort(h.Host, strconv.Itoa(h.NFSPort))
+		}
 		if !h.Reachable {
 			if h.Error != "" && h.Error != "unreachable" {
-				fmt.Fprintf(w, "[%s]  failed: %s\n\n", safe(h.Host), safe(h.Error))
+				fmt.Fprintf(w, "[%s]  failed: %s\n\n", safe(displayHost), safe(h.Error))
 			}
 			continue
 		}
 
-		fmt.Fprintf(w, "[%s]  NFS %s/%s\n", safe(h.Host), safe(h.NFSVersion), safe(h.Transport))
+		fmt.Fprintf(w, "[%s]  NFS %s/%s\n", safe(displayHost), safe(h.NFSVersion), safe(h.Transport))
 		fmt.Fprintf(w, "  Identity: %s\n", safe(h.Identity))
 		if h.Error != "" {
 			fmt.Fprintf(w, "  error: %s\n", safe(h.Error))

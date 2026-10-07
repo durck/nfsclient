@@ -72,6 +72,8 @@ func TestStartupCompletionPathsAndPrivateValues(t *testing.T) {
 		{[]string{"--export", ""}, cobra.ShellCompDirectiveNoFileComp},
 		{[]string{"--timeout", ""}, cobra.ShellCompDirectiveNoFileComp},
 		{[]string{"scan", "--file", ""}, cobra.ShellCompDirectiveDefault},
+		{[]string{"scan", "--paths-file", ""}, cobra.ShellCompDirectiveDefault},
+		{[]string{"scan", "--paths-file=pa"}, cobra.ShellCompDirectiveDefault},
 		{[]string{"scan", "--krb5-config", ""}, cobra.ShellCompDirectiveDefault},
 		{[]string{"scan", "--password", ""}, cobra.ShellCompDirectiveNoFileComp},
 		{[]string{"scan", "--path", ""}, cobra.ShellCompDirectiveNoFileComp},

@@ -117,6 +117,7 @@ func completionMetadata(command string) completionSpec {
 	case "exports":
 		flags(0, "--recursive", "--json")
 		flags(1, "--path", "--depth", "--max-entries", "--discovery-timeout")
+		spec.flags["--paths-file"] = completionFlag{arity: 1, completionArgument: l}
 	}
 	if command == "reget" {
 		flags(0, "--reclaim-locks")

@@ -202,7 +202,8 @@ No ACL/owner replacement permission is required merely to inspect a stream.
 These streams are distinct from the RFC 8276 `xattrs` / `getxattr` commands.
 
 Ordinary `chmod` can also change the server's ACL, including when the numeric
-mode is unchanged. Failed SETATTR may leave partial metadata changes; inspect
+mode is unchanged. The shell prints an advisory before NFSv4 `chmod`.
+Failed SETATTR may leave partial metadata changes; inspect
 `stat` and `acl` before retrying. The client consumes NFSv4 error attributes and
 requires a successful chmod response to acknowledge precisely the mode attribute;
 it does not retry the mutation or promise an ACL-preserving chmod.

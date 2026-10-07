@@ -134,8 +134,8 @@ type shellCommandSpec struct {
 
 var shellCommandCatalog = []shellCommandSpec{
 	{Name: "exports", Group: "browse", Summary: "Discover resources and current-identity access (bounded)",
-		Usage: []string{"exports [--recursive] [--depth N] [--path PATH ...]", "        [--max-entries N] [--discovery-timeout D] [--json]"},
-		Notes: []string{"Repeat --path for known absolute paths. --recursive defaults to depth 3 unless --depth is set."},
+		Usage: []string{"exports [--recursive] [--depth N] [--path PATH ...] [--paths-file FILE]", "        [--max-entries N] [--discovery-timeout D] [--json]"},
+		Notes: []string{"Repeat --path for known absolute paths. --recursive defaults to depth 3 unless --depth is set.", "--paths-file reads a local file of absolute server paths, one per line; relative filenames follow lcd. Surrounding whitespace, blank lines and full-line # comments are ignored. UTF-8 BOM and CRLF are accepted. The file is limited to 16 MiB, lines to less than 64 KiB, and combined paths to --max-entries."},
 	},
 	{Name: "use", Group: "browse", Summary: "Select an export",
 		Usage: []string{"use EXPORT"},

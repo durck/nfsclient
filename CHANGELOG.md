@@ -4,6 +4,22 @@ User-visible changes are grouped by version and type.
 
 ## [Unreleased]
 
+### Added
+
+- `scan --dns-domain` discovers RFC 6641 NFSv4 domain roots, including their
+  advertised ports and namespace paths. Invocation-scoped DNS also covers
+  connection probes and NFS connections; domain-only invocation is supported.
+- `--paths-file` in `scan` and shell `exports`, with bounded, validated UTF-8
+  path lists, shell-local path resolution, help and filename completion.
+- NFSv4 `chmod` warns that changing mode bits can change existing ACL entries.
+
+### Fixed
+
+- Preserve SRV ports and reject unavailable/invalid endpoints; restrict domain
+  roots to NFSv4, respect DNS deadlines and expose endpoints in scan reports.
+- Make the lease-renewal crash test use an observable recoverable RPC boundary,
+  with a separate interrupted-renewal case verifying recovery quarantine.
+
 ## [0.1.0] - 2026-10-07
 
 Initial public release for Windows x64 and Linux x64.

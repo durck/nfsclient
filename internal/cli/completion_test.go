@@ -35,6 +35,7 @@ func TestCompletionHelpFlagsAndEnumsWithoutSession(t *testing.T) {
 		{"root v", "erify "}, {"advise file 0 1 normal,seq", "uential "},
 		{"gettree --merge=f", "alse "}, {"access --json=t", "rue "},
 		{"exports --rec", "ursive "},
+		{"exports --paths-", "file "},
 	} {
 		t.Run(tc.input, func(t *testing.T) {
 			got := completionResults(c, tc.input)
@@ -78,6 +79,7 @@ func TestCompletionLocalTransferRolesAndOptions(t *testing.T) {
 		"lock-save lo", "offload-reconcile lo", "lls lo",
 		"getpnfs remote local --block-volume lo", "putpnfs local remote --block-journal lo",
 		"getpnfs remote local --block-security iscsi://server/target=lo",
+		"exports --paths-file lo", "exports --paths-file=lo",
 	} {
 		if got := completionResults(c, input); !slices.Contains(got, `cal\ marker.txt `) {
 			t.Errorf("local path %q => %q", input, got)

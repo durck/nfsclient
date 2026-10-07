@@ -40,7 +40,7 @@ func installStartupCompletions(cmd *cobra.Command) {
 			}
 		} else {
 			switch flag.Name {
-			case "file", "history", "tls-ca", "tls-cert", "tls-key", "krb5-config", "keytab", "kcm-socket", "as-helper", "fast-armor", "pkinit-cert", "pkinit-key", "pkinit-ca", "pkinit-crl", "pkinit-pfx", "offload-journal", "recover-locks", "recover-offload":
+			case "file", "paths-file", "history", "tls-ca", "tls-cert", "tls-key", "krb5-config", "keytab", "kcm-socket", "as-helper", "fast-armor", "pkinit-cert", "pkinit-key", "pkinit-ca", "pkinit-crl", "pkinit-pfx", "offload-journal", "recover-locks", "recover-offload":
 				completion = func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 					return nil, cobra.ShellCompDirectiveDefault
 				}
