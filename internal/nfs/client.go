@@ -322,6 +322,10 @@ func (c *Client) call(ctx context.Context, proc uint32, e encoder) (*decoder, er
 	return d, nil
 }
 func (c *Client) Exports(ctx context.Context) ([]Export, error) {
+	return c.exportsLimit(ctx, 0)
+}
+
+func (c *Client) exportsLimit(ctx context.Context, limit int) ([]Export, error) {
 	if c.v4 != nil {
 		return []Export{{Path: "/", Clients: []string{}, Namespace: true}}, nil
 	}
@@ -331,6 +335,9 @@ func (c *Client) Exports(ctx context.Context) ([]Export, error) {
 	}
 	out := []Export{}
 	for d.boolean() && d.err == nil {
+		if limit > 0 && len(out) >= limit {
+			return out, errDiscoveryLimit
+		}
 		e := Export{Path: d.str(), Clients: []string{}}
 		for d.boolean() && d.err == nil {
 			e.Clients = append(e.Clients, d.str())
@@ -392,9 +399,9 @@ func (c *Client) Mount(ctx context.Context, p string) (Node, error) {
 	c.mounted[p] = true
 	if !allowed {
 		if wanted == 1 {
-			return Node{}, errors.New("export does not allow AUTH_SYS; select an explicitly supported security mode")
+			return Node{}, fmt.Errorf("%w: export does not allow AUTH_SYS; select an explicitly supported security mode", Status(10016))
 		}
-		return Node{}, fmt.Errorf("export does not allow requested security %s; refusing authentication downgrade", c.Security())
+		return Node{}, fmt.Errorf("%w: export does not allow requested security %s; refusing authentication downgrade", Status(10016), c.Security())
 	}
 	a, err := c.GetAttr(ctx, fh)
 	return Node{Handle: fh, Attr: a}, err

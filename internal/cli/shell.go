@@ -257,14 +257,7 @@ func (s *Shell) Execute(ctx context.Context, line string) (bool, error) {
 		}
 		err = s.printLegend()
 	case "exports":
-		if err := check(0, 0, "exports"); err != nil {
-			return false, err
-		}
-		var exports []nfs.Export
-		exports, err = sess.Client.Exports(ctx)
-		if err == nil {
-			printExports(s.Out, exports, s.Color)
-		}
+		err = s.discoverExports(ctx, a[1:])
 	case "use":
 		if err := check(1, 1, "use EXPORT"); err != nil {
 			return false, err

@@ -3,7 +3,6 @@ package scan
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -19,6 +18,8 @@ type Options struct {
 	NFSVersion  string
 	PortmapPort int
 	NFSPort     int
+	MountPort   int
+	Discovery   nfs.DiscoveryOptions
 	Timeout     time.Duration
 	Concurrency int
 	CheckSquash bool
@@ -36,6 +37,7 @@ func DefaultOptions() Options {
 	return Options{
 		NFSVersion:  "auto",
 		PortmapPort: 111,
+		Discovery:   nfs.DefaultDiscoveryOptions(),
 		Timeout:     5 * time.Second,
 		Concurrency: 20,
 		CheckSquash: true,
@@ -47,32 +49,31 @@ func DefaultOptions() Options {
 	}
 }
 
-type AccessStatus string
-
 const (
-	AccessOK           AccessStatus = "accessible"
-	AccessIPRestricted AccessStatus = "ip_restricted"
-	AccessNotFound     AccessStatus = "not_found"
-	AccessError        AccessStatus = "error"
+	AccessOK     = "accessible"
+	AccessDenied = "denied"
 )
 
 type ExportResult struct {
-	Path           string       `json:"path"`
-	AllowedClients []string     `json:"allowed_clients,omitempty"`
-	Access         AccessStatus `json:"access"`
-	NoRootSquash   *bool        `json:"no_root_squash,omitempty"`
-	Escaped        *bool        `json:"escaped,omitempty"`
-	EscapeMethod   string       `json:"escape_method,omitempty"`
-	Error          string       `json:"error,omitempty"`
+	nfs.DiscoveredExport
+	// Retain the original JSON field; values are advertised rules, not proof of access.
+	AllowedClients []string `json:"allowed_clients,omitempty"`
+	NoRootSquash   *bool    `json:"no_root_squash,omitempty"`
+	Escaped        *bool    `json:"escaped,omitempty"`
+	EscapeMethod   string   `json:"escape_method,omitempty"`
+	ProbeError     string   `json:"probe_error,omitempty"`
 }
 
 type HostResult struct {
-	Host       string         `json:"host"`
-	Reachable  bool           `json:"reachable"`
-	NFSVersion string         `json:"nfs_version,omitempty"`
-	Transport  string         `json:"transport,omitempty"`
-	Exports    []ExportResult `json:"exports,omitempty"`
-	Error      string         `json:"error,omitempty"`
+	Host              string         `json:"host"`
+	Reachable         bool           `json:"reachable"`
+	NFSVersion        string         `json:"nfs_version,omitempty"`
+	Transport         string         `json:"transport,omitempty"`
+	Exports           []ExportResult `json:"exports,omitempty"`
+	Identity          string         `json:"identity,omitempty"`
+	DiscoveryComplete bool           `json:"discovery_complete"`
+	DiscoveryIssues   []string       `json:"discovery_issues,omitempty"`
+	Error             string         `json:"error,omitempty"`
 }
 
 type Result struct {
@@ -81,6 +82,18 @@ type Result struct {
 
 // Run scans hosts concurrently and writes the report to w.
 func Run(ctx context.Context, hosts []string, opts Options, w io.Writer) error {
+	if opts.Discovery == (nfs.DiscoveryOptions{}) {
+		opts.Discovery = nfs.DefaultDiscoveryOptions()
+	}
+	if err := opts.Discovery.Validate(); err != nil {
+		return err
+	}
+	if opts.Timeout <= 0 || opts.Concurrency < 1 || opts.Concurrency > 1024 {
+		return fmt.Errorf("scan requires a positive timeout and concurrency 1..1024")
+	}
+	if opts.Output != "text" && opts.Output != "json" {
+		return fmt.Errorf("output must be text or json")
+	}
 	results := make([]HostResult, len(hosts))
 	sem := make(chan struct{}, opts.Concurrency)
 	var wg sync.WaitGroup
@@ -132,13 +145,14 @@ func probeHost(ctx context.Context, host string, opts Options) HostResult {
 		Version:     opts.NFSVersion,
 		PortmapPort: opts.PortmapPort,
 		NFSPort:     opts.NFSPort,
+		MountPort:   opts.MountPort,
 		Timeout:     opts.Timeout,
 		Auth:        nfs.Auth{UID: opts.UID, GID: opts.GID, Groups: opts.Groups},
 		Security:    opts.Security,
 		Kerberos:    opts.Kerberos,
 	}
 
-	tctx, cancel := context.WithTimeout(ctx, opts.Timeout*3)
+	tctx, cancel := context.WithTimeout(ctx, opts.Timeout*3+opts.Discovery.Timeout)
 	defer cancel()
 
 	client, err := nfs.Connect(tctx, cfg)
@@ -152,71 +166,61 @@ func probeHost(ctx context.Context, host string, opts Options) HostResult {
 	result.NFSVersion = client.Version()
 	result.Transport = client.Transport()
 
-	exports, err := client.Exports(tctx)
+	report, err := client.Discover(tctx, opts.Discovery)
 	if err != nil {
 		result.Error = "exports: " + err.Error()
 		return result
 	}
 
-	for _, exp := range exports {
-		result.Exports = append(result.Exports, probeExport(tctx, client, host, exp, opts))
+	result.Identity, result.DiscoveryComplete, result.DiscoveryIssues = report.Identity, report.Complete, report.Issues
+	for _, exp := range report.Entries {
+		r := ExportResult{DiscoveredExport: exp, AllowedClients: exp.Clients}
+		// Vulnerability probes apply to advertised exports / observed filesystem
+		// boundaries, not every directory in a namespace walk.
+		if (opts.CheckSquash || opts.CheckEscape) && (exp.Source == "mountd" || exp.FilesystemBoundary) && (exp.Access == AccessOK || exp.Access == "unknown") {
+			probeCtx, stop := context.WithTimeout(tctx, opts.Timeout)
+			probeExport(probeCtx, client, host, exp.Export, opts, &r)
+			stop()
+		}
+		result.Exports = append(result.Exports, r)
 	}
 
 	return result
 }
 
-func probeExport(ctx context.Context, client *nfs.Client, host string, exp nfs.Export, opts Options) ExportResult {
-	result := ExportResult{
-		Path:           exp.Path,
-		AllowedClients: exp.Clients,
-	}
-
-	// session.Use() calls client.Mount() internally; Status(13) = IP restriction.
+func probeExport(ctx context.Context, client *nfs.Client, host string, exp nfs.Export, opts Options, result *ExportResult) {
 	sess := session.New(client, host, false, false, io.Discard)
 	if err := sess.Use(ctx, exp.Path); err != nil {
-		var s nfs.Status
-		if errors.As(err, &s) {
-			switch s {
-			case 13:
-				result.Access = AccessIPRestricted
-			case 2:
-				result.Access = AccessNotFound
-			default:
-				result.Access = AccessError
-				result.Error = err.Error()
-			}
-		} else {
-			result.Access = AccessError
-			result.Error = err.Error()
-		}
-		return result
+		result.ProbeError = err.Error()
+		return
 	}
-	result.Access = AccessOK
 
 	if opts.CheckSquash {
 		if squash, err := sess.ProbeSquash(ctx); err == nil {
 			v := squash
 			result.NoRootSquash = &v
+		} else {
+			result.ProbeError = "squash: " + err.Error()
 		}
 	}
 
-	if opts.CheckEscape {
+	// PUTROOTFH is normal NFSv4 namespace navigation, not evidence of escape.
+	if opts.CheckEscape && !strings.HasPrefix(client.Version(), "4.") {
 		if escaped, err := sess.Escape(ctx); err == nil {
 			v := escaped
 			result.Escaped = &v
 			if escaped {
-				ver := client.Version()
-				if strings.HasPrefix(ver, "4") {
-					result.EscapeMethod = "nfsv4_putrootfh"
-				} else {
-					result.EscapeMethod = "knfsd_v" + ver
-				}
+				result.EscapeMethod = "knfsd_v" + client.Version()
 			}
+		} else {
+			if result.ProbeError != "" {
+				result.ProbeError += "; "
+			}
+			result.ProbeError += "escape: " + err.Error()
 		}
 	}
 
 	_ = client.Unmount(ctx, exp.Path)
-	return result
 }
 
 func tcpProbe(host string, port int, timeout time.Duration) bool {
@@ -234,51 +238,83 @@ func printText(w io.Writer, r Result, opts Options) {
 	for _, h := range r.Hosts {
 		if !h.Reachable {
 			if h.Error != "" && h.Error != "unreachable" {
-				fmt.Fprintf(w, "[%s]  failed: %s\n\n", h.Host, h.Error)
+				fmt.Fprintf(w, "[%s]  failed: %s\n\n", safe(h.Host), safe(h.Error))
 			}
 			continue
 		}
 
-		fmt.Fprintf(w, "[%s]  NFS %s/%s\n", h.Host, h.NFSVersion, h.Transport)
+		fmt.Fprintf(w, "[%s]  NFS %s/%s\n", safe(h.Host), safe(h.NFSVersion), safe(h.Transport))
+		fmt.Fprintf(w, "  Identity: %s\n", safe(h.Identity))
 		if h.Error != "" {
-			fmt.Fprintf(w, "  error: %s\n", h.Error)
+			fmt.Fprintf(w, "  error: %s\n", safe(h.Error))
 		}
 
 		for _, ex := range h.Exports {
-			clients := "*"
-			if len(ex.AllowedClients) > 0 {
-				clients = strings.Join(ex.AllowedClients, ",")
+			clients := "not advertised"
+			if len(ex.Clients) > 0 {
+				clients = strings.Join(ex.Clients, ",")
 			}
-			line := fmt.Sprintf("  %-32s  [%-20s]", ex.Path, clients)
+			line := fmt.Sprintf("  %-32s  [%s; %s]", safe(ex.Path), safe(ex.Source), safe(clients))
 
 			switch ex.Access {
 			case AccessOK:
 				accessible++
 				line += "  accessible"
-				if opts.CheckSquash && ex.NoRootSquash != nil {
-					if *ex.NoRootSquash {
-						line += "  NO_ROOT_SQUASH"
-						vulnerable++
-					} else {
-						line += "  root_squash"
-					}
-				}
-				if opts.CheckEscape && ex.Escaped != nil {
-					if *ex.Escaped {
-						line += fmt.Sprintf("  ESCAPE(%s)", ex.EscapeMethod)
-					} else {
-						line += "  no-escape"
-					}
-				}
-			case AccessIPRestricted:
+			case AccessDenied:
 				restricted++
-				line += "  IP_RESTRICTED"
-			case AccessNotFound:
-				line += "  not_found"
-			case AccessError:
-				line += "  error: " + ex.Error
+				line += "  denied (cause not disclosed)"
+			default:
+				line += "  " + safe(ex.Access)
+			}
+			permission := func(value *bool) string {
+				if value == nil {
+					return "?"
+				}
+				if *value {
+					return "yes"
+				}
+				return "no"
+			}
+			line += "  list=" + permission(ex.CanList) + " traverse=" + permission(ex.CanTraverse)
+			vulnerableResource := false
+			if opts.CheckSquash && ex.NoRootSquash != nil {
+				if *ex.NoRootSquash {
+					line += "  NO_ROOT_SQUASH"
+					vulnerableResource = true
+				} else {
+					line += "  root_squash"
+				}
+			}
+			if opts.CheckEscape && ex.Escaped != nil {
+				if *ex.Escaped {
+					line += fmt.Sprintf("  ESCAPE(%s)", safe(ex.EscapeMethod))
+					vulnerableResource = true
+				} else {
+					line += "  no-escape"
+				}
+			}
+			if vulnerableResource {
+				vulnerable++
+			}
+			if ex.Error != "" {
+				line += "  " + safe(ex.Error)
+			}
+			if ex.ProbeError != "" {
+				line += "  probe: " + safe(ex.ProbeError)
+			}
+			if ex.FilesystemBoundary {
+				line += "  filesystem-boundary"
+			}
+			if ex.Traversal != "" {
+				line += "  " + safe(ex.Traversal)
 			}
 			fmt.Fprintln(w, line)
+		}
+		if !h.DiscoveryComplete {
+			fmt.Fprintln(w, "  Partial discovery")
+		}
+		for _, issue := range h.DiscoveryIssues {
+			fmt.Fprintln(w, "    "+safe(issue))
 		}
 		fmt.Fprintln(w)
 	}
@@ -292,6 +328,11 @@ func printText(w io.Writer, r Result, opts Options) {
 		}
 	}
 
-	fmt.Fprintf(w, "summary: %d hosts  %d NFS  %d unreachable  |  %d accessible  %d ip-restricted  %d vulnerable\n",
+	fmt.Fprintf(w, "summary: %d hosts  %d NFS  %d unreachable  |  %d accessible  %d denied  %d vulnerable\n",
 		len(r.Hosts), nfsHosts, unreachable, accessible, restricted, vulnerable)
+}
+
+func safe(s string) string {
+	q := fmt.Sprintf("%q", s)
+	return q[1 : len(q)-1]
 }

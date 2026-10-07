@@ -18,6 +18,8 @@ func newScanCommand(out io.Writer) *cobra.Command {
 		nfsVersion  string
 		portmapPort int
 		nfsPort     int
+		mountPort   int
+		recursive   bool
 		timeout     time.Duration
 		concurrency int
 		noSquash    bool
@@ -35,13 +37,14 @@ func newScanCommand(out io.Writer) *cobra.Command {
 		domain    string
 		krb5Cfg   string
 	)
+	discovery := nfs.DefaultDiscoveryOptions()
 
 	cmd := &cobra.Command{
 		Use:   "scan [flags] <targets...>",
 		Short: "Scan NFS servers for exposed exports and vulnerabilities",
 		Long: `Scan one or more hosts for NFS services. For each host, lists exports,
-detects IP restrictions, and checks for no_root_squash and root-handle
-escape vulnerabilities (NFSv2/v3 knfsd heuristic, NFSv4 PUTROOTFH).
+discovers the NFSv4 namespace or NFSv2/v3 MOUNT exports, checks current-identity
+access, and optionally probes no_root_squash and NFSv2/v3 root-handle escape.
 
 Target formats:
   192.168.1.10            single IP
@@ -51,9 +54,11 @@ Target formats:
 
 Use -f to load targets from a file (one per line; lines starting with # ignored).
 
-IP restrictions (whitelist) are detected automatically: if the server
-returns NFS status 13 (permission denied) on mount, the export is marked
-IP_RESTRICTED. The advertised client list from showmount is also shown.
+Permission denied does not establish an IP restriction. Advertised MOUNT client
+rules are shown separately; NFSv4 does not advertise these rules. Discovery is
+bounded and reports partial results. Use --recursive or --depth for deeper walks.
+Squash checks create and remove a temporary file; use --no-squash-check and
+--no-escape-check for read-only discovery under the selected identity.
 
 AUTH_SYS example:
   nfsclient scan 192.168.1.0/24 --uid 0
@@ -70,6 +75,9 @@ Kerberos example (password):
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if recursive && !cmd.Flags().Changed("depth") {
+				discovery.MaxDepth = 3
+			}
 			hosts, err := scan.ParseTargets(args, file)
 			if err != nil {
 				return err
@@ -98,6 +106,8 @@ Kerberos example (password):
 				NFSVersion:  nfsVersion,
 				PortmapPort: portmapPort,
 				NFSPort:     nfsPort,
+				MountPort:   mountPort,
+				Discovery:   discovery,
 				Timeout:     timeout,
 				Concurrency: concurrency,
 				CheckSquash: !noSquash,
@@ -120,7 +130,9 @@ Kerberos example (password):
 
 	cmd.Flags().StringVar(&nfsVersion, "nfs-version", "auto", "NFS version: auto, 2, 3, 4.0, 4.1, 4.2")
 	cmd.Flags().IntVar(&portmapPort, "portmap-port", 111, "portmapper port")
-	cmd.Flags().IntVar(&nfsPort, "nfs-port", 0, "NFS port (0 = discover via portmapper)")
+	cmd.Flags().IntVar(&nfsPort, "nfs-port", 0, "NFS port (0 = 2049 for NFSv4, discover for NFSv2/v3)")
+	cmd.Flags().IntVar(&mountPort, "mount-port", 0, "MOUNT port for NFSv2/v3 (0 = discover)")
+	discoveryFlags(cmd.Flags(), &discovery, &recursive)
 	cmd.Flags().DurationVarP(&timeout, "timeout", "t", 5*time.Second, "per-host connection timeout")
 	cmd.Flags().IntVarP(&concurrency, "concurrency", "j", 20, "max simultaneous connections")
 	cmd.Flags().BoolVar(&noSquash, "no-squash-check", false, "skip no_root_squash detection")

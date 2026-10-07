@@ -7,6 +7,10 @@ until a tagged release is published.
 
 ### Added
 
+- Bounded NFSv4 namespace discovery in `exports` and `scan`, with current-identity
+  access checks, filesystem boundaries, partial results, JSON output and traversal
+  limits. NFSv2/v3 discovery checks advertised MOUNT exports; scan accepts explicit
+  MOUNT ports.
 - Current server hostname and connected IP in the interactive prompt, with
   bounded reverse DNS lookup for IP targets and refresh after reconnect.
 - Typographic nfsclient banner for the GitHub README.
@@ -52,6 +56,8 @@ until a tagged release is published.
 
 ### Changed
 
+- Report permission denial without inferring an IP restriction, and stop treating
+  ordinary NFSv4 pseudo-root navigation as a root-escape vulnerability.
 - Replace the captioned batch demo with a native Windows interactive terminal
   recording, including real prompts, colors, navigation and Tab completion.
 - Consolidate public documentation by operation and state native interoperability

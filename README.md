@@ -119,6 +119,36 @@ collisions offer overwrite where supported, rename or cancel; batch commands
 refuse collisions. Press Ctrl+C twice consecutively to exit the shell; the
 first press cancels the current operation. `reconnect` restores a closed connection.
 
+### Resource discovery
+
+`exports` checks advertised MOUNT exports on NFSv2/v3 and explores the visible
+server namespace on NFSv4, without requiring rpcbind or mountd for NFSv4.
+It reports paths, discovery source, the current identity, directory listing and
+traversal permissions, filesystem boundaries, and per-path failures.
+
+```text
+exports
+exports --recursive --depth 5 --max-entries 5000 --discovery-timeout 20s
+exports --json
+```
+
+The default NFSv4 depth is 1; `--recursive` selects 3 unless `--depth` is given.
+Discovery defaults to 1000 examined entries (files count too) and 10 seconds.
+Depth is limited to 64 and the entry budget to 100000. Legacy temporary MOUNT
+registrations get up to 2 additional seconds for cleanup. Existing mounts,
+UID/GID, security flavor, selected export and working directory are preserved.
+Cancellation during an RPC can close that connection; use `reconnect` if needed.
+
+Denied paths, required security changes, referrals, and depth/time/entry limits
+produce partial results. Referrals are reported without following another server.
+Symlinks are not followed. NFSv2 lacks ACCESS, so permissions remain unknown.
+`fsid` changes identify filesystem boundaries, not necessarily export boundaries.
+The NFSv4 result does not merge MOUNT paths or client rules: those may describe a
+different namespace. Select NFSv3 separately to inspect its advertised exports.
+Even a completed walk cannot enumerate names hidden by the server. A known path
+may remain usable when its parent cannot be listed. No UID switching, security
+downgrade or write probes are performed by `exports`.
+
 ## Identity and connection policy
 
 For a fixed AUTH_SYS identity use `--uid`, `--gid`, `--groups`,
@@ -212,20 +242,28 @@ Target formats accepted as positional arguments or via `--file`:
 For each reachable host the scan reports:
 
 - Discovered NFS version and transport.
-- All advertised exports with the client-allow list from `showmount`.
-- **IP restriction** — NFS status 13 returned by `MOUNT` is detected automatically
-  and the export is marked `IP_RESTRICTED`.
+- Advertised NFSv2/v3 MOUNT exports and client rules, or discovered NFSv4 paths.
+- Current identity, observed access, and partial discovery reasons. Permission
+  denied is reported as `denied`; it does not prove an IP restriction.
 - **no\_root\_squash** — a temporary file is created as UID 0; if the server reports
   stored UID 0 the flag is active.
-- **Root-handle escape** — NFSv2/v3 uses the knfsd v1 handle heuristic;
-  NFSv4 probes the pseudo-root via `PUTROOTFH`.
+- **Root-handle escape** — NFSv2/v3 uses the knfsd v1 handle heuristic.
+  Ordinary NFSv4 pseudo-root access is not classified as a vulnerability.
 
 Output is a human-readable table (default) or structured JSON (`--output json`).
 Scan supports the same auth flags as the main command: `--uid`, `--gid`, `--groups`,
 `--sec`, `--principal`, `--keytab`, `--password`, `--domain` and `--krb5-config`.
 `--concurrency` (default 20) controls simultaneous connections; `--timeout`
-(default 5 s) limits per-host attempts.  `--no-squash-check` and `--no-escape-check`
-skip the respective probes when speed is more important than coverage.
+(default 5 s) limits individual connection/probe attempts. `--recursive`,
+`--depth`, `--max-entries` and `--discovery-timeout` use the same discovery
+semantics as `exports`. RPC work per host has a budget of three times
+`--timeout` plus `--discovery-timeout`, with bounded MOUNT cleanup as above.
+`--nfs-port` and `--mount-port` together bypass rpcbind for NFSv2/v3.
+Use `--no-squash-check --no-escape-check` for read-only discovery. Optional
+probes run on advertised exports or observed filesystem boundaries, not every
+directory. JSON includes `source`, `identity`, `discovery_complete`,
+`discovery_issues`, `can_list` and `can_traverse`; `allowed_clients` is retained
+for compatibility and contains only advertised MOUNT rules.
 
 ## Advanced commands
 

@@ -397,7 +397,7 @@ func (s *Shell) printHelp() error {
 		items [][2]string
 	}{
 		{"BROWSE", [][2]string{
-			{"exports", "List exports and client rules"},
+			{"exports [--recursive] [--depth N] [--json]", "Discover resources and current-identity access (bounded)"},
 			{"use EXPORT", "Select an export"},
 			{"pwd | cd [PATH]", "Show / change remote directory"},
 			{"ls [PATH] | stat PATH", "List files / show attributes"},
