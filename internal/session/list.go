@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"strings"
 
 	"nfsclient/internal/nfs"
 )
@@ -64,14 +65,23 @@ func (s *Session) List(ctx context.Context, p string, limit int) ([]nfs.Entry, m
 			var n nfs.Node
 			n, _, err = s.Resolve(ctx, path.Join(dir, e.Name), true)
 			if err == nil {
-				var access uint32
-				access, err = s.Client.Access(ctx, n.Handle)
+				var access nfs.AccessReport
+				access, err = s.Client.CheckAccess(ctx, n.Handle, 63)
 				want := uint32(1) // READ for a file, LOOKUP for a directory.
 				if n.Attr.Type == 2 {
 					want = 2
 				}
-				if err == nil && access&want == 0 {
-					err = nfs.Status(13)
+				if err == nil {
+					decision := access.Decision(want)
+					if n.Attr.Type == 1 {
+						decision = access.ReadDecision(strings.HasPrefix(s.Client.Version(), "4"))
+					}
+					switch decision {
+					case "denied":
+						err = nfs.Status(13)
+					case "unsupported", "unknown":
+						info.State = "unchecked"
+					}
 				}
 			}
 		}

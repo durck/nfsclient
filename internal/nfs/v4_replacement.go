@@ -224,11 +224,14 @@ func (c *Client) CheckV4ReplacementStage(ctx context.Context, fh []byte, origina
 		}
 	}
 	if stage.attr.Owner != original.attr.Owner || stage.attr.Group != original.attr.Group {
-		access, err := c.Access(ctx, fh)
+		access, err := c.CheckAccess(ctx, fh, 63)
 		if err != nil {
 			return replacementError(err)
 		}
-		if access&13 != 13 {
+		if access.Supported&13 != 13 {
+			return replacementError(errors.New("server cannot verify read and write access to the private staging file"))
+		}
+		if access.Allowed&13 != 13 {
 			return replacementError(errors.New("current identity cannot read and write the private staging file"))
 		}
 	}

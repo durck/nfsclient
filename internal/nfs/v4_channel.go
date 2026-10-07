@@ -26,7 +26,7 @@ type sessionWireBudgetKey struct{}
 func readOnlyCompound4(ops []v4Op) bool {
 	for _, op := range ops {
 		switch op.code {
-		case 3, 9, 10, 15, 16, 22, 23, 24, 25, 26, 27, 31, 32, 33, 47, 52, 68, 69, 72, 74:
+		case 3, 9, 10, 13, 15, 16, 22, 23, 24, 25, 26, 27, 31, 32, 33, 47, 52, 68, 69, 72, 74:
 		default:
 			return false
 		}

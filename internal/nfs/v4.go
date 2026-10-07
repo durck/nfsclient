@@ -83,6 +83,7 @@ type v4Client struct {
 	lastLease             atomic.Pointer[time.Time]
 	reclaimForbidden      atomic.Bool
 	exchangeRole          uint32
+	implementationClaims  []ServerImplementation
 	recall                *layoutRecall
 	callbackRenewalNeeded bool // guarded by mu; SEQUENCE reports expiring handles
 }
@@ -439,7 +440,7 @@ func (v *v4Client) compoundContextLocked(ctx context.Context, auth Auth, rpc *rp
 				}
 				v.stateLost.Store(true)
 			}
-			if (code == 12 || code == 13) && s == 10010 {
+			if (code == 12 || code == 13) && s == 10010 && ops[i].failure == nil {
 				d.u64() // conflicting offset and length
 				d.u64()
 				d.u32()
@@ -567,10 +568,14 @@ func (v *v4Client) initializeSession(ctx context.Context, expected *createSessio
 				d.err = errors.New("invalid NFSv4 implementation count")
 				return
 			}
+			v.implementationClaims = nil
 			for i := uint32(0); i < n; i++ {
-				d.str()
-				d.str()
-				d.take(12)
+				claim := ServerImplementation{Domain: d.str(), Name: d.str(), DateSeconds: int64(d.u64()), DateNanos: d.u32()}
+				if claim.DateNanos >= 1e9 {
+					d.err = errors.New("invalid implementation timestamp")
+					return
+				}
+				v.implementationClaims = append(v.implementationClaims, claim)
 			}
 		})); err != nil {
 			return err
@@ -936,13 +941,6 @@ func (v *v4Client) tune(ctx context.Context, fh []byte) error {
 		}
 	})
 }
-func (v *v4Client) access(ctx context.Context, fh []byte) (uint32, error) {
-	var e encoder
-	e.u32(63)
-	var access uint32
-	err := v.compound(ctx, fh4(fh), op4(3, e, func(d *decoder) { d.u32(); access = d.u32() }))
-	return access, err
-}
 func (v *v4Client) readlink(ctx context.Context, fh []byte) (string, error) {
 	var target string
 	err := v.compound(ctx, fh4(fh), op4(27, nil, func(d *decoder) { target = d.str() }))
@@ -1175,7 +1173,27 @@ func (v *v4Client) create(ctx context.Context, dir []byte, name string, mode uin
 func (v *v4Client) chmod(ctx context.Context, fh []byte, mode uint32) error {
 	e := make(encoder, 16)
 	e = append(e, mode4(mode)...)
-	return v.compound(ctx, fh4(fh), op4(34, e, func(d *decoder) { readBitmap4(d) }))
+	op := op4(34, e, func(d *decoder) {
+		bits := readBitmap4(d)
+		if d.err == nil && (len(bits) != 1 || bits[0] != 33) {
+			d.err = errors.New("server did not acknowledge exactly the requested mode attribute")
+		}
+	})
+	changed := false
+	op.failure = func(d *decoder) {
+		// SETATTR carries attrsset even on failure. A valid partial result
+		// must preserve its NFS status without invalidating the session slot.
+		bits := readBitmap4(d)
+		if d.err == nil && (len(bits) > 1 || len(bits) == 1 && bits[0] != 33) {
+			d.err = errors.New("failed chmod acknowledged an unrequested attribute")
+		}
+		changed = len(bits) != 0
+	}
+	err := v.compound(ctx, fh4(fh), op)
+	if err != nil && changed {
+		return fmt.Errorf("chmod failed; mode and ACL may have changed; inspect before retrying: %w", err)
+	}
+	return err
 }
 func (v *v4Client) remove(ctx context.Context, dir []byte, name string) error {
 	var e encoder

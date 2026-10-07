@@ -15,6 +15,7 @@ type DiscoveryOptions struct {
 	MaxDepth   int
 	MaxEntries int
 	Timeout    time.Duration
+	Paths      []string // Explicit absolute server paths; independent of READDIR depth.
 }
 
 func DefaultDiscoveryOptions() DiscoveryOptions {
@@ -25,24 +26,46 @@ func (o DiscoveryOptions) Validate() error {
 	if o.MaxDepth < 1 || o.MaxDepth > 64 || o.MaxEntries < 1 || o.MaxEntries > 100000 || o.Timeout <= 0 {
 		return errors.New("discovery requires depth 1..64, max-entries 1..100000 and a positive timeout")
 	}
+	if len(o.Paths) > o.MaxEntries {
+		return errors.New("known paths exceed discovery max-entries")
+	}
+	for _, p := range o.Paths {
+		if !strings.HasPrefix(p, "/") || strings.ContainsRune(p, 0) || len(p) > 4096 {
+			return errors.New("known discovery paths must be absolute, NUL-free and at most 4096 bytes")
+		}
+		parts := strings.Split(strings.Trim(p, "/"), "/")
+		if len(parts) > 64 {
+			return errors.New("known discovery paths cannot exceed 64 components")
+		}
+		for _, part := range parts {
+			if part == ".." {
+				return errors.New("known discovery paths cannot contain parent components (..)")
+			}
+		}
+	}
 	return nil
 }
 
 type DiscoveredExport struct {
 	Export
-	Source             string `json:"source"`
-	Access             string `json:"access"`
-	CanList            *bool  `json:"can_list,omitempty"`
-	CanTraverse        *bool  `json:"can_traverse,omitempty"`
-	FilesystemBoundary bool   `json:"filesystem_boundary,omitempty"`
-	Traversal          string `json:"traversal,omitempty"`
-	Error              string `json:"error,omitempty"`
+	Source             string   `json:"source"`
+	Sources            []string `json:"sources"`
+	Access             string   `json:"access"`
+	CanList            *bool    `json:"can_list,omitempty"`
+	CanTraverse        *bool    `json:"can_traverse,omitempty"`
+	FilesystemBoundary bool     `json:"filesystem_boundary,omitempty"`
+	SecurityBoundary   bool     `json:"security_boundary,omitempty"`
+	AdvertisedSecurity []string `json:"advertised_security,omitempty"`
+	Referral           bool     `json:"referral,omitempty"`
+	Traversal          string   `json:"traversal,omitempty"`
+	Error              string   `json:"error,omitempty"`
 }
 
 type DiscoveryReport struct {
-	Version  string             `json:"nfs_version"`
-	Identity string             `json:"identity"`
-	Entries  []DiscoveredExport `json:"entries"`
+	pathIndex map[string]int
+	Version   string             `json:"nfs_version"`
+	Identity  string             `json:"identity"`
+	Entries   []DiscoveredExport `json:"entries"`
 	// Complete refers only to the discoverable namespace under this identity,
 	// never to the server's configuration or paths hidden from READDIR.
 	Complete bool     `json:"complete"`
@@ -50,6 +73,15 @@ type DiscoveryReport struct {
 }
 
 func DiscoveryErrorStatus(err error) string {
+	if errors.Is(err, errDiscoveryLimit) {
+		return "entry_limit"
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "timeout"
+	}
+	if errors.Is(err, context.Canceled) {
+		return "cancelled"
+	}
 	var s Status
 	if errors.As(err, &s) {
 		switch s {
@@ -75,39 +107,42 @@ func (r *DiscoveryReport) issue(p string, err error) {
 
 func (c *Client) discoveryAccess(ctx context.Context, n Node, e *DiscoveredExport) {
 	e.Access = "unknown"
-	if c.Version() == "2" {
-		return
-	} // NFSv2 has no ACCESS operation.
-	var supported, allowed uint32
-	var err error
-	if c.v4 != nil {
-		var req encoder
-		req.u32(3) // READ (directory listing) and LOOKUP (directory traversal).
-		err = c.v4.compound(ctx, fh4(n.Handle), op4(3, req, func(d *decoder) {
-			supported, allowed = d.u32(), d.u32()
-			if supported & ^uint32(3) != 0 || allowed & ^supported != 0 {
-				d.err = errors.New("invalid discovery ACCESS mask")
-			}
-		}))
-	} else {
-		supported = 3
-		allowed, err = c.Access(ctx, n.Handle)
+	e.Error = ""
+	e.CanList, e.CanTraverse = nil, nil
+	e.SecurityBoundary, e.Referral = false, false
+	e.AdvertisedSecurity = nil
+	if e.Traversal == "wrong_security" || e.Traversal == "referral" {
+		e.Traversal = ""
 	}
+	requested := uint32(1)
+	if n.Attr.Type == 2 {
+		requested |= 2
+	}
+	// NFSv4 READ may be authorized by EXECUTE for a regular file (RFC 8881
+	// section 18.22.3); READ alone cannot establish a denial.
+	if c.v4 != nil && n.Attr.Type == 1 {
+		requested |= 32
+	}
+	a, err := c.CheckAccess(ctx, n.Handle, requested)
 	if err != nil {
-		e.Access, e.Error = DiscoveryErrorStatus(err), err.Error()
+		discoveryFailure(e, err)
 		return
 	}
-	if supported&1 != 0 {
+	if !a.Available {
+		return
+	}
+	supported, allowed := a.Supported, a.Allowed
+	if n.Attr.Type == 2 && supported&1 != 0 {
 		b := allowed&1 != 0
 		e.CanList = &b
 	}
-	if supported&2 != 0 {
+	if n.Attr.Type == 2 && supported&2 != 0 {
 		b := allowed&2 != 0
 		e.CanTraverse = &b
 	}
-	if allowed&3 != 0 {
+	if allowed&requested != 0 {
 		e.Access = "accessible"
-	} else if supported&3 == 3 {
+	} else if supported&requested == requested {
 		e.Access = "denied"
 	}
 }
@@ -127,55 +162,44 @@ func (c *Client) Discover(parent context.Context, o DiscoveryOptions) (Discovery
 		return r, nil
 	}
 	if c.v4 == nil {
-		exports, err := c.exportsLimit(ctx, o.MaxEntries)
-		if err != nil {
-			r.issue("MOUNT EXPORT", err)
-		}
-		for _, exp := range exports {
-			e := DiscoveredExport{Export: exp, Source: "mountd", Access: "unknown"}
-			if err := ctx.Err(); err != nil {
-				r.issue(exp.Path, err)
-				break
-			}
-			alreadyMounted := c.mounted[exp.Path]
-			n, err := c.Mount(ctx, exp.Path)
-			if err != nil {
-				e.Access, e.Error = DiscoveryErrorStatus(err), err.Error()
-				r.issue(exp.Path, err)
-			} else {
-				c.discoveryAccess(ctx, n, &e)
-				if e.Error != "" {
-					r.issue(exp.Path, errors.New(e.Error))
-				}
-			}
-			if !alreadyMounted && c.mounted[exp.Path] {
-				// Discovery may have exhausted its budget on the NFS connection;
-				// the separate MOUNT connection still needs bounded cleanup.
-				cleanup, stop := context.WithTimeout(context.Background(), 2*time.Second)
-				if err := c.Unmount(cleanup, exp.Path); err != nil {
-					r.issue(exp.Path, fmt.Errorf("MOUNT cleanup: %w", err))
-				}
-				stop()
-			}
-			r.Entries = append(r.Entries, e)
-		}
+		c.discoverLegacy(ctx, o, &r)
 		return r, nil
 	}
 
 	root, err := c.Mount(ctx, "/")
-	r.Entries = append(r.Entries, DiscoveredExport{Export: Export{Path: "/", Namespace: true}, Source: "namespace", Access: "unknown"})
+	r.add(DiscoveredExport{Export: Export{Path: "/", Namespace: true}, Source: "namespace", Access: "unknown"})
 	if err != nil {
-		r.Entries[0].Access, r.Entries[0].Error = DiscoveryErrorStatus(err), err.Error()
+		discoveryFailure(&r.Entries[0], err)
 		r.issue("/", err)
+		if len(root.Handle) == 0 {
+			for _, supplied := range o.Paths {
+				p := path.Clean(supplied)
+				if r.index(p) >= 0 {
+					r.add(DiscoveredExport{Export: Export{Path: p}, Source: "known_path"})
+					continue
+				}
+				if len(r.Entries) >= o.MaxEntries {
+					r.issue(p, errDiscoveryLimit)
+					continue
+				}
+				e := DiscoveredExport{Export: Export{Path: p}, Source: "known_path"}
+				discoveryFailure(&e, fmt.Errorf("server root unavailable: %w", err))
+				r.add(e)
+			}
+			return r, nil
+		}
+		remaining := o.MaxEntries - 1
+		c.discoverKnownV4(ctx, root, o.Paths, &r, &remaining)
 		return r, nil
 	}
+	remaining := o.MaxEntries - 1
+	c.discoverKnownV4(ctx, root, o.Paths, &r, &remaining)
 	type pending struct {
 		node         Node
 		index, depth int
 	}
 	queue := []pending{{root, 0, 0}}
 	seen := map[string]bool{}
-	remaining := o.MaxEntries - 1
 	for len(queue) > 0 {
 		item := queue[0]
 		queue = queue[1:]
@@ -213,25 +237,30 @@ func (c *Client) Discover(parent context.Context, o DiscoveryOptions) (Discovery
 		remaining -= used
 		parentPath := e.Path
 		if err != nil {
-			e.Traversal = "partial"
+			e.Traversal = DiscoveryErrorStatus(err)
 			r.issue(parentPath, err)
 		} else {
 			e.Traversal = "listed"
 		}
 		for _, child := range children {
 			if child.Err == nil && child.Attr.Type != 2 {
+				if index := r.index(path.Join(parentPath, child.Name)); index >= 0 {
+					r.add(DiscoveredExport{Export: Export{Path: r.Entries[index].Path}, Source: "namespace"})
+				}
 				continue
 			}
 			e := DiscoveredExport{Export: Export{Path: path.Join(parentPath, child.Name)}, Source: "namespace", Access: "unknown"}
 			if child.Err != nil {
-				e.Access, e.Error = DiscoveryErrorStatus(child.Err), child.Err.Error()
+				discoveryFailure(&e, child.Err)
 				r.issue(e.Path, child.Err)
 			} else {
 				a, b := item.node.Attr, child.Attr
 				e.FilesystemBoundary = a.HasFSID && b.HasFSID && (a.FSID != b.FSID || a.FSIDMinor != b.FSIDMinor)
-				queue = append(queue, pending{child.Node, len(r.Entries), item.depth + 1})
+				index := r.add(e)
+				queue = append(queue, pending{child.Node, index, item.depth + 1})
+				continue
 			}
-			r.Entries = append(r.Entries, e)
+			r.add(e)
 		}
 	}
 	return r, nil

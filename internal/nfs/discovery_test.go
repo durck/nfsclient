@@ -16,6 +16,13 @@ func discoveryPeer(t *testing.T) (*Client, *int) {
 	v := peer4WithHandle(t, 0, func(op uint32, d *decoder) (encoder, Status, error) {
 		var e encoder
 		switch op {
+		case 33:
+			d.str()
+			e.u32(1)
+			e.u32(6)
+			e.opaque(krb5OID)
+			e.u32(0)
+			e.u32(3)
 		case 9:
 			readBitmap4(d)
 			bitmap4(&e, 1, 8, 20)

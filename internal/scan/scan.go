@@ -82,8 +82,10 @@ type Result struct {
 
 // Run scans hosts concurrently and writes the report to w.
 func Run(ctx context.Context, hosts []string, opts Options, w io.Writer) error {
-	if opts.Discovery == (nfs.DiscoveryOptions{}) {
+	if opts.Discovery.MaxDepth == 0 && opts.Discovery.MaxEntries == 0 && opts.Discovery.Timeout == 0 {
+		paths := opts.Discovery.Paths
 		opts.Discovery = nfs.DefaultDiscoveryOptions()
+		opts.Discovery.Paths = paths
 	}
 	if err := opts.Discovery.Validate(); err != nil {
 		return err

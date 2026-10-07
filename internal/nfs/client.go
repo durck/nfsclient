@@ -78,27 +78,28 @@ type Export struct {
 	Namespace bool     `json:"namespace_root,omitempty"`
 }
 type Attr struct {
-	HasNLink  bool      `json:"-"`
-	NLink     uint32    `json:"-"`
-	HasSize   bool      `json:"-"`
-	HasMTime  bool      `json:"-"`
-	HasCTime  bool      `json:"-"`
-	HasChange bool      `json:"-"`
-	CTime     time.Time `json:"-"`
-	Change    uint64    `json:"-"`
-	HasFSID   bool      `json:"-"`
-	HasFileID bool      `json:"-"`
-	Owner     string    `json:"owner,omitempty"`
-	Group     string    `json:"group,omitempty"`
-	FSIDMinor uint64    `json:"fsid_minor,omitempty"`
-	Type      uint32    `json:"type"`
-	Mode      uint32    `json:"mode"`
-	UID       uint32    `json:"uid"`
-	GID       uint32    `json:"gid"`
-	Size      uint64    `json:"size"`
-	FSID      uint64    `json:"fsid"`
-	FileID    uint64    `json:"file_id"`
-	MTime     time.Time `json:"mtime"`
+	Offline   OfflineState `json:"offline,omitempty"`
+	HasNLink  bool         `json:"-"`
+	NLink     uint32       `json:"-"`
+	HasSize   bool         `json:"-"`
+	HasMTime  bool         `json:"-"`
+	HasCTime  bool         `json:"-"`
+	HasChange bool         `json:"-"`
+	CTime     time.Time    `json:"-"`
+	Change    uint64       `json:"-"`
+	HasFSID   bool         `json:"-"`
+	HasFileID bool         `json:"-"`
+	Owner     string       `json:"owner,omitempty"`
+	Group     string       `json:"group,omitempty"`
+	FSIDMinor uint64       `json:"fsid_minor,omitempty"`
+	Type      uint32       `json:"type"`
+	Mode      uint32       `json:"mode"`
+	UID       uint32       `json:"uid"`
+	GID       uint32       `json:"gid"`
+	Size      uint64       `json:"size"`
+	FSID      uint64       `json:"fsid"`
+	FileID    uint64       `json:"file_id"`
+	MTime     time.Time    `json:"mtime"`
 }
 type Node struct {
 	Handle []byte `json:"-"`
@@ -474,19 +475,8 @@ func (c *Client) Access(ctx context.Context, fh []byte) (uint32, error) {
 	if c.Version() == "2" {
 		return 0, errors.New("NFSv2 does not support ACCESS; link access is unverified")
 	}
-	if c.v4 != nil {
-		return c.v4.access(ctx, fh)
-	}
-	var e encoder
-	e.opaque(fh)
-	e.u32(63)
-	d, err := c.call(ctx, 4, e)
-	if err != nil {
-		return 0, err
-	}
-	postAttr(d)
-	v := d.u32()
-	return v, d.err
+	r, err := c.CheckAccess(ctx, fh, 63)
+	return r.Allowed, err
 }
 func (c *Client) Readlink(ctx context.Context, fh []byte) (string, error) {
 	if c.Version() == "2" {

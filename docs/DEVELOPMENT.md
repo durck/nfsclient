@@ -97,6 +97,9 @@ credential. Cancel connection-owned KDC work before waiting on an RPC mutex
 that foreground credential replacement may hold.
 For negotiated NFSv4 channels, use the complete RPC/compound budget once;
 subtracting a legacy WRITE-payload allowance again can reject legal metadata.
+Operation-specific error results still carry XDR bodies: SETATTR returns attrsset
+on failure and LOCKT DENIED returns a conflict owner/range. Consume and validate
+these before checking trailing bytes; a valid refusal must not poison the session.
 
 Always read/write documentation with explicit UTF-8 and inspect visible text:
 valid Unicode can already contain mojibake. Generated Unix scripts also need

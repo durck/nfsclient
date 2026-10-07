@@ -16,6 +16,9 @@ This table and the operation guides define current support.
 | NFSv3 | Ordinary file/namespace operations, ACL inspection/export/import and explicit bounded replacement; TCP/UDP | NFSACL extension required for policy-preserving replacement; ordinary overwrite refuses; [NFSACL](REPLACEMENT.md#nfsv3-acl-inspection) |
 | NFSv4.0/4.1/4.2 | Direct COMPOUND, ordinary OPEN/read/write/close, negotiated session budgets and leases | Fixed state/identity checks; exact original-slot recovery requires an explicit policy |
 | Selection/discovery | AUTH_SYS/Kerberos explicit auto TCP 4.2 -> 4.1 -> 4.0 -> 3 -> 2; UDP 3 -> 2; explicit service ports and rpcbind/MOUNT | Only version mismatches allow fallback; pNFS/advanced paths require explicit versions |
+| Resource inspection | Bounded `exports` namespace/MOUNT discovery plus explicit `--path`, provenance, security/referral boundaries and `access` observations | Fixed current identity; hidden paths require supplied names; no claim to enumerate server configuration |
+| Capability/connection inspection | `info`, per-path `capabilities`, explicit `ls --offline` / `stat --offline` | Advertisement differs from successful operation; unknown remains unknown; optional metadata never opens content |
+| Named-attribute inspection | NFSv4 OPENATTR(false), bounded listing and export to a new local file | Up to 64 entries / 64 KiB per exported value; separate from RFC 8276 xattrs; [attributes](REPLACEMENT.md#extended-and-named-attributes) |
 | AUTH_SYS | UID/GID and bounded groups, explicit/fixed or v3 observed-owner selection | Server permissions/root squash remain authoritative; observed namespace root is not host `/` |
 | Kerberos/GSS | v2/v3/v4 TCP and v2/v3 UDP `krb5`, `krb5i`, `krb5p`; pinned identities/SPNs, bounded routes and context renewal | No automatic security downgrade; [protected UDP](TRANSPORT.md#protected-nfsv3-udp), [TLS/GSS](TRANSPORT.md#tls-bound-gss) |
 | Keytab / FILE | Explicit credential sources, valid home TGT import, AES session profiles; parse diagnostics redact keys | FILE formats 3/4, fixed principal; live connections renew eligible TGTs in memory, subject to KDC renewal lifetime; OS caches remain externally managed |
@@ -49,6 +52,43 @@ backing filesystems. Recorded MIT/Samba/Microsoft AD, kernel/Ganesha/UNFS3 and
 FreeBSD results apply only to their documented profiles. Fresh software checks
 do not create new native NAS/cluster/forest interoperability evidence.
 
+## Inspection commands
+
+```text
+info
+capabilities /data
+access /data/report.txt --json
+ls --offline /data
+stat --offline /data/archive.bin
+```
+
+`info` returns JSON for the connected peer, configured/best-effort display name,
+transport, NFS version, AUTH_SYS fields or Kerberos principal, and actual TLS
+status. EXCHANGE_ID implementation strings are server claims, not a verified
+vendor fingerprint. TLS verification and RPC user authentication are distinct;
+owner strings cannot establish the server's internal AD/UID mapping.
+
+`capabilities [PATH] [--json]` returns JSON (default path `.`), distinguishing
+client implementation, negotiated-protocol eligibility and per-object server
+advertisement. ACL/xattr/layout/offline attributes provide metadata evidence;
+COPY, CLONE and other optional operations stay unknown without such evidence.
+It performs no mutation or content probes and keeps no persistent capability
+cache. Advertisement is neither a successful operation nor an authorization grant.
+
+`access PATH [--json]` preserves requested, supported and allowed ACCESS masks.
+Results distinguish allowed, denied, unsupported and unknown. NFSv2 has no ACCESS.
+Directory READ/LOOKUP are labelled list/traverse. NFSv4 regular-file EXECUTE can
+authorize reading even when the raw READ check is denied; the report explains
+this without reading content. Inspection pins and restores the current identity.
+An observation is not a guarantee for a subsequent operation.
+
+`ls --offline [PATH]` and `stat --offline PATH` request RFC 9754 metadata only
+when advertised. Missing/omitted/unsupported status stays `unknown`, never
+`online`; ordinary ls/stat add no optional-attribute RPCs. Explicit cat/get still
+read content and may initiate server-side archive recall. The new inspection
+profiles have deterministic software-peer coverage; native optional-extension
+interoperability is not claimed.
+
 Native Windows/Linux NFSv3 checks additionally cover ext4, XFS and Btrfs with
 permissive and subtree-restricted exports. Bounded root candidates succeed on
 the freshly formatted ext4/XFS profiles and refuse the generation-7 Btrfs
@@ -57,7 +97,7 @@ exports. Linux publication onto freshly formatted FAT32/exFAT passes new-file,
 collision and explicit-replacement checks; this does not establish native
 Windows FAT32/exFAT behavior. See the [fixture catalog](../tests/README.md).
 
-The [client implementation plan](PLAN.md) tracks 13 concrete additions or
-extensions to these profiles. Native interoperability gaps remain evidence
+The [client implementation plan](PLAN.md) records the completed original scope
+and the separately approved RFC-informed inspection iteration. Native interoperability gaps remain evidence
 limitations in this table and the operation guides; they are not unfinished
 client features. Completed historical ledgers are retained as development evidence.

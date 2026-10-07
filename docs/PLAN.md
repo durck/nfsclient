@@ -2,7 +2,8 @@
 
 Rebuilt 2026-10-05 from the current client source. This replaces the historical
 completion ledger. It contains **13 client tasks**, ordered in four stages.
-**13 accepted, 0 open.** Acceptance records below refer to the current implementation;
+**13 accepted, 0 open in the original plan.** The separate RFC-informed iteration
+below tracks the newly approved scope. Acceptance records below refer to the current implementation;
 completed behavior is described in the linked operation guides.
 
 The first four tasks extend incomplete existing workflows. The remaining nine
@@ -239,3 +240,44 @@ silently extending the completion target.
   in the selected client profiles and are not hidden completion conditions.
 
 Verification scope is documented in [development](DEVELOPMENT.md).
+
+## RFC-informed inspection iteration (2026-10-07)
+
+The completed F01-F13 scope remains unchanged. The user approved the following
+bounded additions after reviewing primary NFS RFCs. Hardware and a new external
+stand remain excluded; WebNFS, DNS discovery and new pNFS extensions are deferred.
+
+Design decision: share typed access/capability observations in `internal/nfs`,
+resolve paths with pinned identities in `internal/session`, and present commands
+in `internal/cli`. Keeping independent wire checks in each command was rejected:
+it already produced different interpretations of the ACCESS supported mask.
+No persistent capability cache or generic plugin framework is introduced.
+Advertised support, client implementation, protocol eligibility and observed
+authorization remain distinct; diagnostic commands do not test mutations.
+
+- [x] R01: Preserve ACCESS requested/supported/allowed masks; expose `access`;
+  unsupported checks must not become permission denials. Pin inspection identity.
+- [x] R02: Check explicit `exports --path` paths independently of READDIR depth;
+  merge provenance and expose security/referral/partial boundaries without fallback.
+- [x] R03: Expose `info` and per-path `capabilities`; optional operations without
+  affirmative evidence remain unknown. Do not infer AD mapping from owner strings.
+- [x] R04: Add explicit `ls --offline` and `stat --offline` metadata inspection;
+  missing support remains unknown and inspection never opens file contents.
+  `gettree --skip-offline` lists known offline skips before opening content;
+  unknown status retains normal download behavior.
+- [x] R05: Extend `locktest` with NFSv4 LOCKT and expose bounded named-attribute
+  listing/export; no remote attribute creation or lock acquisition during inspection.
+- [x] R06: Verify lost-reply/GSS/partial-operation behavior, fix confirmed defects,
+  complete independent review and integrated Windows/Linux checks.
+
+Completion requires observable success and refusal tests for each item, topical
+documentation updates and the integrated checks from DEVELOPMENT.md. Optional
+server features are tested with protocol peers; this does not claim native NAS
+interoperability for the new extensions.
+
+All six items are accepted. Independent review findings were corrected, including
+unsupported ACCESS handling, execute-authorized read observations, unavailable
+root handles, stale discovery hints and SETATTR error payloads. Windows/Linux
+self-checks (vet, race, builds and packaged release scenarios), focused final
+regressions and staticcheck v0.7.0 passed. New optional extensions retain the
+software-peer evidence limitation described above.

@@ -709,7 +709,10 @@ func (s *Session) Chmod(ctx context.Context, p string, mode uint32) error {
 	if err != nil {
 		return err
 	}
-	return s.Client.Chmod(ctx, n.Handle, mode)
+	if err := s.Client.Chmod(ctx, n.Handle, mode); err != nil {
+		return fmt.Errorf("chmod failed; mode or ACL may have changed: inspect stat/acl before retrying: %w", err)
+	}
+	return nil
 }
 func (s *Session) Mkdir(ctx context.Context, p string) error {
 	dir, name, err := splitDestination(p)
@@ -813,7 +816,7 @@ func (s *Session) canRead(ctx context.Context, fh []byte, uid, gid uint32) (bool
 	if s.Client.Version() == "2" {
 		return modeAllowsRead(a, uid, gid), nil
 	}
-	bits, err := s.Client.Access(ctx, fh)
+	access, err := s.Client.CheckAccess(ctx, fh, 63)
 	if err != nil {
 		var status nfs.Status
 		if errors.As(err, &status) {
@@ -821,7 +824,11 @@ func (s *Session) canRead(ctx context.Context, fh []byte, uid, gid uint32) (bool
 		}
 		return false, err
 	}
-	return bits&1 != 0, nil
+	decision := access.ReadDecision(a.Type == 1 && strings.HasPrefix(s.Client.Version(), "4"))
+	if decision == "unsupported" || decision == "unknown" {
+		return false, errors.New("server cannot verify read access")
+	}
+	return decision == "allowed", nil
 }
 
 func modeAllowsRead(a nfs.Attr, uid, gid uint32) bool {

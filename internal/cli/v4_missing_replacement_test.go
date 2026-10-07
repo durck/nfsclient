@@ -77,6 +77,8 @@ func TestV4MissingOverwriteUsesGuardedCreate(t *testing.T) {
 }
 
 type missingV4Peer struct {
+	minor                    uint32
+	inspectOperation         func(uint32, *missingV4Decoder, *string) ([]byte, uint32, error)
 	race, exists             bool
 	data                     []byte
 	mode                     uint32
@@ -114,8 +116,8 @@ func (p *missingV4Peer) serve(listener net.Listener) error {
 		d.word()
 		d.opaque()
 		d.opaque() // COMPOUND tag.
-		if d.word() != 0 {
-			return errors.New("expected minor version zero")
+		if d.word() != p.minor {
+			return errors.New("unexpected minor version")
 		}
 		count := d.word()
 		if count > 16 {
@@ -126,7 +128,11 @@ func (p *missingV4Peer) serve(listener net.Listener) error {
 		current := ""
 		for completed < count {
 			code := d.word()
-			value, opStatus, err := p.operation(code, d, &current)
+			operation := p.operation
+			if p.inspectOperation != nil {
+				operation = p.inspectOperation
+			}
+			value, opStatus, err := operation(code, d, &current)
 			if err != nil {
 				return err
 			}

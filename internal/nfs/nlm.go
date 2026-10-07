@@ -24,11 +24,14 @@ func (s NLMStatus) Error() string {
 	return fmt.Sprintf("unknown NLM status %d", s)
 }
 
-// LockConflict is a momentary NLM TEST observation, never a retained lock.
-// SVID is the server's opaque process identifier, not a local PID.
+// LockConflict is a momentary TEST/LOCKT observation, never a retained lock.
+// SVID belongs only to NLM; NFSv4 returns an opaque owner and client ID.
 type LockConflict struct {
+	Protocol       string
 	Write          bool
 	SVID           int32
+	ClientID       uint64
+	Owner          []byte
 	Offset, Length uint64 // LockToEOF means through future EOF.
 }
 
@@ -56,11 +59,14 @@ func encodeNLMRange(e *encoder, version uint32, offset, length uint64) {
 	}
 }
 
-// TestLock observes conflicts using NLM v1 for NFSv2 and NLM v4 for NFSv3.
+// TestLock observes conflicts using NLM for NFSv2/v3 or LOCKT for NFSv4.
 // nil means no conflict was reported at that instant, not permission to write.
 // It never acquires, monitors, reclaims or releases locks. Protected profiles
-// are refused rather than silently opening an unprotected side channel.
+// are refused for NLM rather than opening an unprotected side channel.
 func (c *Client) TestLock(ctx context.Context, fh []byte, write bool, offset, length uint64) (*LockConflict, error) {
+	if c.v4 != nil {
+		return c.v4.testLock(ctx, fh, write, offset, length)
+	}
 	version := uint32(4)
 	switch c.Version() {
 	case "2":
@@ -200,7 +206,7 @@ func decodeNLMTest(d *decoder, version uint32, cookie []byte, write bool, offset
 	status := NLMStatus(d.u32())
 	var result *LockConflict
 	if status == 1 {
-		result = &LockConflict{Write: d.boolean(), SVID: int32(d.u32())}
+		result = &LockConflict{Protocol: "NLM", Write: d.boolean(), SVID: int32(d.u32())}
 		d.opaque(1024) // Remote opaque owner is intentionally not displayed or retained.
 		if version == 1 {
 			result.Offset, result.Length = uint64(d.u32()), uint64(d.u32())

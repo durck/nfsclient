@@ -22,6 +22,10 @@ type TreeOptions struct {
 	// Links copies symbolic links as links, including dangling links.
 	Links     bool
 	Hardlinks bool
+	// SkipOffline skips only files positively reported offline by RFC 9754
+	// metadata. Unknown/unavailable attributes follow ordinary download behavior.
+	// Metadata errors fail the transfer. Downloads only.
+	SkipOffline bool
 	// Mode and MTime preserve ordinary permission bits and modification times.
 	// They do not preserve ACLs, owners, atime, ctime or special mode bits.
 	Mode, MTime bool
@@ -65,7 +69,7 @@ func (s *Session) GetTreeWithOptions(ctx context.Context, remote, local string, 
 	if err := options.validate(); err != nil {
 		return 0, err
 	}
-	root, _, err := s.Resolve(ctx, remote, false)
+	root, resolvedRoot, err := s.Resolve(ctx, remote, false)
 	if err != nil {
 		return 0, err
 	}
@@ -173,6 +177,7 @@ func (s *Session) GetTreeWithOptions(ctx context.Context, remote, local string, 
 	defer dst.Close()
 	mergeNames := treeMergeNames{}
 	localFiles := map[string]os.FileInfo{}
+	materializedHardlinks := map[string]string{}
 	for _, entry := range entries {
 		if err := ctx.Err(); err != nil {
 			return count, err
@@ -218,6 +223,26 @@ func (s *Session) GetTreeWithOptions(ctx context.Context, remote, local string, 
 		}
 		if err := verifyDownloadSource(entry.node.Attr, a); err != nil {
 			return count, err
+		}
+		if options.SkipOffline {
+			state, err := s.Client.OfflineMetadata(ctx, entry.node.Handle)
+			if err != nil {
+				return count, fmt.Errorf("offline metadata %q: %w", path.Join(resolvedRoot, entry.name), err)
+			}
+			if state == nfs.OfflineOffline {
+				if s.Notice != nil {
+					if _, err := fmt.Fprintf(s.Notice, "Skipped offline file: %q\n", path.Join(resolvedRoot, entry.name)); err != nil {
+						return count, err
+					}
+				}
+				continue
+			}
+		}
+		// A preflight hardlink source may have been skipped. Only alias a
+		// successfully materialized file; otherwise download this online name.
+		linkKey := fmt.Sprintf("%d:%d:%d", a.FSID, a.FSIDMinor, a.FileID)
+		if options.Hardlinks {
+			entry.hardlink = materializedHardlinks[linkKey]
 		}
 		if entry.hardlink != "" {
 			prior, err := dst.Lstat(entry.hardlink)
@@ -265,6 +290,7 @@ func (s *Session) GetTreeWithOptions(ctx context.Context, remote, local string, 
 			if err != nil {
 				return count, err
 			}
+			materializedHardlinks[linkKey] = entry.name
 		}
 	}
 	// Apply directory metadata bottom-up after all child creation. Permissions
@@ -292,6 +318,9 @@ func (s *Session) PutTree(ctx context.Context, local, remote string, progress Tr
 }
 
 func (s *Session) PutTreeWithOptions(ctx context.Context, local, remote string, options TreeOptions, progress TransferProgress) (count int64, resultErr error) {
+	if options.SkipOffline {
+		return 0, errors.New("--skip-offline is supported only by gettree")
+	}
 	if err := options.validate(); err != nil {
 		return 0, err
 	}

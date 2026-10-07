@@ -19,6 +19,16 @@ Explicit legacy server-restart recovery is described in the
 [NLM reclaim contract](LOCKS.md#nlm-restart-reclaim). It requires `--nlm-reclaim` and a server
 that rejects reclaim outside grace; general client-crash recovery stays separate.
 
+### NFSv4 conflict inspection
+
+`locktest PATH read|write [OFFSET LENGTH|eof]` uses LOCKT on NFSv4.0/4.1/4.2
+with the existing connection and protection. It returns a conflicting range and
+opaque owner/client ID, or no conflict at this instant. No OPEN or LOCK is issued;
+the inspection does not acquire, reserve or release a lock. A fresh test owner
+also permits conflicts with this client's retained owners to be reported.
+Fixed-identity resolution and final handle validation apply. Grace, malformed
+denials and transport errors remain errors, never an unlocked result.
+
 <a id="locks-ranges-and-ownership-nfsv2v3-conflict-inspection"></a>
 ### NFSv2/v3 conflict inspection
 

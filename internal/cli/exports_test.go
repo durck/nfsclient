@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/spf13/pflag"
+
 	"nfsclient/internal/nfs"
 	"nfsclient/internal/scan"
 )
@@ -17,7 +19,7 @@ func TestExportsDiscoveryPreservesSession(t *testing.T) {
 	sh, _, out := testShell(t)
 	s := sh.Session
 	root, export, cwd, auth := s.Root, s.Export, s.CWD, s.Client.Auth
-	for _, line := range []string{"exports", "exports --recursive --depth 5 --max-entries 10 --discovery-timeout 1s --json"} {
+	for _, line := range []string{"exports", "exports --recursive --depth 5 --max-entries 10 --discovery-timeout 1s --json", "exports --path / --path /hidden/name --json"} {
 		out.Reset()
 		if _, err := sh.Execute(context.Background(), line); err != nil {
 			t.Fatal(err)
@@ -41,6 +43,19 @@ func TestExportsDiscoveryPreservesSession(t *testing.T) {
 		if _, err := sh.Execute(context.Background(), line); err == nil {
 			t.Fatal("accepted", line)
 		}
+	}
+}
+
+func TestDiscoveryRepeatedPathFlagsPreserveCommas(t *testing.T) {
+	o := nfs.DefaultDiscoveryOptions()
+	var recursive bool
+	f := pflag.NewFlagSet("test", pflag.ContinueOnError)
+	discoveryFlags(f, &o, &recursive)
+	if err := f.Parse([]string{"--path", "/a,b", "--path", "/space name"}); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(o.Paths, []string{"/a,b", "/space name"}) {
+		t.Fatal(o.Paths)
 	}
 }
 

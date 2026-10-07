@@ -192,6 +192,21 @@ interoperability for the new metadata models.
 <a id="extended-and-named-attributes"></a>
 ## Extended and named attributes
 
+For independent read-only inspection, `namedattrs PATH` lists OPENATTR stream
+names, sizes and change values as JSON. `getnamedattr PATH NAME LOCAL` reads one
+stream and exports it to a new local file without overwriting an existing path.
+The profile is NFSv4.0/4.1/4.2, at most 64 names and 64 KiB per exported value.
+It uses OPENATTR with create=false, fixed identity, bounded reads and observed
+identity/change checks. Final symlinks and unexpected named object types refuse.
+No ACL/owner replacement permission is required merely to inspect a stream.
+These streams are distinct from the RFC 8276 `xattrs` / `getxattr` commands.
+
+Ordinary `chmod` can also change the server's ACL, including when the numeric
+mode is unchanged. Failed SETATTR may leave partial metadata changes; inspect
+`stat` and `acl` before retrying. The client consumes NFSv4 error attributes and
+requires a successful chmod response to acknowledge precisely the mode attribute;
+it does not retry the mutation or promise an ACL-preserving chmod.
+
 NFSv4 replacement automatically copies all names and binary values exposed by
 RFC 8276 xattrs (v4.2) and OPENATTR named attributes (v4.0/4.1/4.2). There is no
 name allowlist or text conversion. Empty values are retained. This extends

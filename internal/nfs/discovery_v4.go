@@ -97,6 +97,9 @@ func (v *v4Client) discoveryChildren(ctx context.Context, fh []byte, limit int) 
 		verifier = nextVerifier
 		used += len(page)
 		for _, entry := range page {
+			if errors.Is(entry.Err, Status(10016)) {
+				entry.Err = v.wrongSecurity(ctx, fh, entry.Name)
+			}
 			if entry.Err == nil && (len(entry.Handle) == 0 || entry.Attr.Type == 0) {
 				entry.Node, entry.Err = v.lookup(ctx, fh, entry.Name)
 			}

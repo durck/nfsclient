@@ -29,6 +29,18 @@ func TestScanValidation(t *testing.T) {
 	}
 }
 
+func TestScanDiscoveryPathsOnlyDefaults(t *testing.T) {
+	o := DefaultOptions()
+	o.Discovery = nfs.DiscoveryOptions{Paths: []string{"/known"}}
+	if err := Run(context.Background(), nil, o, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	o.Discovery.Paths = []string{"relative"}
+	if err := Run(context.Background(), nil, o, &bytes.Buffer{}); err == nil {
+		t.Fatal("paths discarded while applying discovery defaults")
+	}
+}
+
 func TestV2ProbeResultsVisibleWithoutAccessOperation(t *testing.T) {
 	yes := true
 	r := Result{Hosts: []HostResult{{Host: "127.0.0.1", Reachable: true, NFSVersion: "2", DiscoveryComplete: true, Exports: []ExportResult{{DiscoveredExport: nfs.DiscoveredExport{Export: nfs.Export{Path: "/data"}, Source: "mountd", Access: "unknown"}, NoRootSquash: &yes, Escaped: &yes, EscapeMethod: "knfsd_v2"}}}}}

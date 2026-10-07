@@ -86,9 +86,12 @@ The self-check generates this file automatically.
 ```text
 exports
 use /data
+info
+capabilities .
 ls
 cd documents
 stat notes.txt
+access notes.txt
 cat notes.txt
 get notes.txt local-notes.txt
 put "local report.txt" "new report.txt"
@@ -130,9 +133,15 @@ traversal permissions, filesystem boundaries, and per-path failures.
 exports
 exports --recursive --depth 5 --max-entries 5000 --discovery-timeout 20s
 exports --json
+exports --path /backup --path /home/team
 ```
 
 The default NFSv4 depth is 1; `--recursive` selects 3 unless `--depth` is given.
+Repeated `--path` checks known absolute server paths before enumeration, even
+when a parent denies listing. Explicit paths are independent of traversal depth
+but share the time/entry budget and are limited to 64 components. NFSv2/v3 use
+the longest advertised ancestor export or try the supplied path as a MOUNT root;
+a hidden mount root cannot be inferred from an arbitrary file path.
 Discovery defaults to 1000 examined entries (files count too) and 10 seconds.
 Depth is limited to 64 and the entry budget to 100000. Legacy temporary MOUNT
 registrations get up to 2 additional seconds for cleanup. Existing mounts,
@@ -142,6 +151,8 @@ Cancellation during an RPC can close that connection; use `reconnect` if needed.
 Denied paths, required security changes, referrals, and depth/time/entry limits
 produce partial results. Referrals are reported without following another server.
 Symlinks are not followed. NFSv2 lacks ACCESS, so permissions remain unknown.
+JSON retains `source` and adds merged `sources`, security/referral markers and
+advertised SECINFO modes where available; no authentication fallback is attempted.
 `fsid` changes identify filesystem boundaries, not necessarily export boundaries.
 The NFSv4 result does not merge MOUNT paths or client rules: those may describe a
 different namespace. Select NFSv3 separately to inspect its advertised exports.

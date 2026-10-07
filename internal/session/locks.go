@@ -11,6 +11,9 @@ import (
 // TestLock checks the resolved regular file with a fixed identity. Verify the
 // path again before reporting; this is an observation, not namespace isolation.
 func (s *Session) TestLock(ctx context.Context, remote string, write bool, offset, length uint64) (*nfs.LockConflict, error) {
+	if s.Client == nil {
+		return nil, errors.New("no NFS connection")
+	}
 	if err := nfs.ValidateLockRange(offset, length); err != nil {
 		return nil, err
 	}

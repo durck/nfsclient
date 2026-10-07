@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"path"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -23,7 +24,7 @@ import (
 	"nfsclient/internal/session"
 )
 
-var commands = []string{"exports", "use", "reconnect", "migrate", "lock-save", "offload-reconcile", "lock", "locktest", "nlmrecover", "locks", "unlock", "pwd", "cd", "ls", "stat", "acl", "getacl", "setacl", "label", "setlabel", "xattrs", "getxattr", "setxattr", "removexattr", "cat", "hex", "get", "getplus", "getpnfs", "putrangepnfs", "putpnfs", "getrange", "putrange", "reget", "reput", "replace", "gettree", "puttree", "put", "chmod", "mkdir", "rm", "rmdir", "mv", "copyrange", "clonerange", "copyasync", "copyfrom", "writesame", "writeadb", "advise", "seek", "allocate", "deallocate", "id", "uid", "uid-scan", "auto-uid", "auto-uid-scan", "escape", "root", "auto-escape", "squash", "lpwd", "lcd", "lls", "help", "legend", "exit", "quit"}
+var commands = []string{"access", "info", "capabilities", "namedattrs", "getnamedattr", "exports", "use", "reconnect", "migrate", "lock-save", "offload-reconcile", "lock", "locktest", "nlmrecover", "locks", "unlock", "pwd", "cd", "ls", "stat", "acl", "getacl", "setacl", "label", "setlabel", "xattrs", "getxattr", "setxattr", "removexattr", "cat", "hex", "get", "getplus", "getpnfs", "putrangepnfs", "putpnfs", "getrange", "putrange", "reget", "reput", "replace", "gettree", "puttree", "put", "chmod", "mkdir", "rm", "rmdir", "mv", "copyrange", "clonerange", "copyasync", "copyfrom", "writesame", "writeadb", "advise", "seek", "allocate", "deallocate", "id", "uid", "uid-scan", "auto-uid", "auto-uid-scan", "escape", "root", "auto-escape", "squash", "lpwd", "lcd", "lls", "help", "legend", "exit", "quit"}
 
 func parseLockRange(args []string) (uint64, uint64, error) {
 	if len(args) == 0 {
@@ -244,6 +245,22 @@ func (s *Shell) Execute(ctx context.Context, line string) (bool, error) {
 	}
 	sess := s.Session
 	switch a[0] {
+	case "access":
+		return false, s.access(ctx, a[1:])
+	case "info":
+		return false, s.info(ctx, a[1:])
+	case "capabilities":
+		return false, s.capabilities(ctx, a[1:])
+	case "namedattrs":
+		if err := check(1, 1, "namedattrs PATH"); err != nil {
+			return false, err
+		}
+		return false, s.inspectNamedAttributes(ctx, a[1])
+	case "getnamedattr":
+		if err := check(3, 3, "getnamedattr PATH NAME LOCAL"); err != nil {
+			return false, err
+		}
+		return false, s.exportNamedAttribute(ctx, a[1], a[2], a[3])
 	case "exit", "quit":
 		return true, check(0, 0, a[0])
 	case "help":
@@ -363,7 +380,11 @@ func (s *Shell) Execute(ctx context.Context, line string) (bool, error) {
 				if conflict.Write {
 					kind = "write"
 				}
-				fmt.Fprintf(s.Out, "Conflict: %s lock, offset=%d length=%s svid=%d; no lock acquired.\n", kind, conflict.Offset, lockLengthLabel(conflict.Length), conflict.SVID)
+				if conflict.Protocol == "NFSv4" {
+					fmt.Fprintf(s.Out, "Conflict: %s lock, offset=%d length=%s clientid=%d owner=%x; no lock acquired.\n", kind, conflict.Offset, lockLengthLabel(conflict.Length), conflict.ClientID, conflict.Owner)
+				} else {
+					fmt.Fprintf(s.Out, "Conflict: %s lock, offset=%d length=%s svid=%d; no lock acquired.\n", kind, conflict.Offset, lockLengthLabel(conflict.Length), conflict.SVID)
+				}
 			}
 		}
 	case "lock":
@@ -463,6 +484,9 @@ func (s *Shell) Execute(ctx context.Context, line string) (bool, error) {
 		}
 		err = sess.CD(ctx, p)
 	case "ls":
+		if slices.Contains(a[1:], "--offline") {
+			return false, s.listWithOffline(ctx, a[1:])
+		}
 		if err := check(0, 1, "ls [PATH]"); err != nil {
 			return false, err
 		}
@@ -475,6 +499,9 @@ func (s *Shell) Execute(ctx context.Context, line string) (bool, error) {
 			}
 		}
 	case "stat":
+		if slices.Contains(a[1:], "--offline") {
+			return false, s.statWithOffline(ctx, a[1:])
+		}
 		if err := check(1, 1, "stat PATH"); err != nil {
 			return false, err
 		}
@@ -1087,13 +1114,18 @@ func (s *Shell) Execute(ctx context.Context, line string) (bool, error) {
 				options.Mode = true
 			case "--preserve-mtime":
 				options.MTime = true
+			case "--skip-offline":
+				if a[0] != "gettree" {
+					return false, errors.New("--skip-offline is only available for gettree")
+				}
+				options.SkipOffline = true
 			default:
 				return false, fmt.Errorf("unknown tree option %q", args[0])
 			}
 			args = args[1:]
 		}
 		if len(args) != 2 || strings.HasPrefix(args[0], "--") {
-			return false, fmt.Errorf("usage: %s [--merge] [--links] [--hardlinks] [--preserve-mode] [--preserve-mtime] SOURCE DESTINATION", a[0])
+			return false, fmt.Errorf("usage: %s [--merge] [--links] [--hardlinks] [--preserve-mode] [--preserve-mtime] [--skip-offline (gettree only)] SOURCE DESTINATION", a[0])
 		}
 		var count int64
 		if a[0] == "gettree" {

@@ -176,6 +176,14 @@ empty and oversized targets are refused. Windows link creation requires OS
 support/privilege; failure remains explicit. Uploads require NFSv3/v4 guarded
 creation. Downloads also support the existing NFSv2 per-file size limit.
 
+`gettree --skip-offline REMOTE LOCAL` checks advertised RFC 9754 offline
+metadata before opening each regular file or creating a local hardlink alias.
+Known offline files are skipped and their paths are printed to the notice stream.
+Unknown/unsupported offline status follows normal download behavior; the option
+does not guarantee that an unreported archive recall cannot occur. Metadata
+errors stop the transfer. `puttree` rejects this download-only option. Source
+preflight and portable-name checks still apply, including to skipped entries.
+
 `--hardlinks` preserves regular-file hardlink groups within the copied tree,
 using filesystem/file identities rather than equal contents. One payload is
 transferred per group; additional names use LINK. Source/name changes and

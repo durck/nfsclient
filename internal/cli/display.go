@@ -182,6 +182,9 @@ func (s *Shell) printEntries(entries []nfs.Entry, linkMaps ...map[string]session
 				}
 			}
 		}
+		if e.Attr.Offline != "" {
+			name += " [" + string(e.Attr.Offline) + "]"
+		}
 		rows = append(rows, []cell{{name, tone}, {size, metadata}, {permissions(e.Attr), metadata}, {ownerLabel(e.Attr), metadata}, {e.Attr.MTime.Local().Format("2006-01-02 15:04"), modifiedTone}})
 	}
 	if err := table(s.Out, rows, s.Color); err != nil {
@@ -397,10 +400,10 @@ func (s *Shell) printHelp() error {
 		items [][2]string
 	}{
 		{"BROWSE", [][2]string{
-			{"exports [--recursive] [--depth N] [--json]", "Discover resources and current-identity access (bounded)"},
+			{"exports [--recursive] [--depth N] [--path PATH ...] [--json]", "Discover resources and current-identity access (bounded)"},
 			{"use EXPORT", "Select an export"},
 			{"pwd | cd [PATH]", "Show / change remote directory"},
-			{"ls [PATH] | stat PATH", "List files / show attributes"},
+			{"ls [--offline] [PATH] | stat [--offline] PATH", "List files / show attributes; optional archive status"},
 			{"acl PATH", "Read NFSv2/v3 ACLs or ordered NFSv4 ACL JSON"},
 			{"getacl PATH LOCAL [acl|dacl|sacl]", "Export versioned ACL JSON; dacl/sacl require NFSv4"},
 			{"setacl PATH LOCAL", "Apply complete ACL JSON with exact readback; fixed identity"},
@@ -430,7 +433,7 @@ func (s *Shell) printHelp() error {
 			{"putrange LOCAL REMOTE OFFSET", "Write bytes in place under a covering write lock"},
 			{"putrangepnfs LOCAL REMOTE OFFSET [--layout file|flex|block] [--block-write] [--block-volume IMAGE ... | --block-target iscsi://IP:PORT/IQN/LUN ... --block-initiator IQN] [--extend] [--block-journal STATE] [--block-resume] [--write-failover] [--refresh-devices] [--parallel 1..8] [--ds-spn TARGET=nfs/HOST] DS=TARGET [...]", "Write through approved pNFS storage; resume requires a fresh whole-file lock"},
 			{"putpnfs LOCAL REMOTE [--layout file|flex|block] [--block-write] [--block-volume IMAGE ... | --block-target iscsi://IP:PORT/IQN/LUN ... --block-initiator IQN] [--block-journal STATE] [--write-failover] [--refresh-devices] [--parallel 1..8] [--ds-spn TARGET=nfs/HOST] DS=TARGET [...]", "Create and upload a new file through approved pNFS storage"},
-			{"gettree [OPTIONS] REMOTE LOCAL", "Download tree: --merge --links --hardlinks --preserve-mode --preserve-mtime"},
+			{"gettree [OPTIONS] REMOTE LOCAL", "Download tree: --merge --links --hardlinks --preserve-mode --preserve-mtime --skip-offline"},
 			{"puttree [OPTIONS] LOCAL REMOTE", "Upload tree: --merge --links --hardlinks --preserve-mode --preserve-mtime"},
 			{"put LOCAL [REMOTE]", "Upload with progress"},
 			{"replace LOCAL REMOTE", "Explicit ACL-preserving replacement (v3 requires NFSACL)"},
@@ -452,6 +455,11 @@ func (s *Shell) printHelp() error {
 		}},
 		{"SESSION", [][2]string{
 			{"id", "Show connection and identity"},
+			{"info [--json]", "Inspect connection, identity and server claims"},
+			{"capabilities [PATH] [--json]", "Inspect advertised features without mutation probes"},
+			{"access PATH [--json]", "Observe server permissions under the current identity"},
+			{"namedattrs PATH", "List NFSv4 named attributes as JSON"},
+			{"getnamedattr PATH NAME LOCAL", "Export one named attribute to a new local file"},
 			{"reconnect [--discard-locks|--reclaim-locks]", "Fresh connection, explicit discard, or bounded server-restart reclaim"},
 			{"lock [--wait|--wait-native DURATION] PATH read|write [OFFSET LENGTH|eof]", "Obtain a lock; --wait polls conflicts, --wait-native waits for legacy NLM GRANTED or GRANTED_MSG callbacks"},
 			{"nlmrecover", "Release durably confirmed NLM locks from a crashed session; requires a fresh connection"},
@@ -462,7 +470,7 @@ func (s *Shell) printHelp() error {
 			{"setxattr PATH KEY create|replace|either HEX", "Write and verify a user attribute (up to 65536 bytes)"},
 			{"removexattr PATH KEY", "Remove one user attribute and verify absence"},
 			{"locks / unlock ID", "List held/uncertain locks or release a lock"},
-			{"locktest PATH read|write [OFFSET LENGTH|eof]", "Observe NFSv2/v3 NLM conflicts without acquiring a lock (AUTH_SYS)"},
+			{"locktest PATH read|write [OFFSET LENGTH|eof]", "Observe NLM (v2/v3 AUTH_SYS) or NFSv4 LOCKT conflicts; no lock acquired"},
 			{"uid UID [GID [G1,G2]]", "Set identity; disable auto-uid"},
 			{"auto-uid on|off", "Toggle owner UID/GID selection"},
 			{"root info|verify|reset", "Inspect / verify / restore root"},

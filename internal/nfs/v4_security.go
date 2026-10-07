@@ -12,6 +12,25 @@ import (
 // SECINFO advertises a mechanism OID's contents, without ASN.1 tag/length.
 var krb5OID = []byte{0x2a, 0x86, 0x48, 0x86, 0xf7, 0x12, 1, 2, 2}
 
+// WrongSecurityError preserves SECINFO evidence without choosing a new flavor.
+type WrongSecurityError struct {
+	Requested    string
+	Advertised   []string
+	SECINFOError error
+}
+
+func (e *WrongSecurityError) Unwrap() error { return Status(10016) }
+func (e *WrongSecurityError) Error() string {
+	if e.SECINFOError != nil {
+		return fmt.Sprintf("%v: requested %s; SECINFO unavailable: %v (no security fallback)", Status(10016), e.Requested, e.SECINFOError)
+	}
+	available := strings.Join(e.Advertised, ", ")
+	if available == "" {
+		available = "no security tuples"
+	}
+	return fmt.Sprintf("%v: requested %s; server advertises %s; select --sec explicitly (no security fallback)", Status(10016), e.Requested, available)
+}
+
 func readSecurity4(d *decoder) []string {
 	count := d.u32()
 	if count > 64 {
@@ -51,11 +70,7 @@ func (v *v4Client) wrongSecurity(ctx context.Context, dir []byte, name string) e
 	var modes []string
 	err := v.compound(ctx, fh4(dir), op4(33, e, func(d *decoder) { modes = readSecurity4(d) }))
 	if err != nil {
-		return fmt.Errorf("%w: requested %s; SECINFO unavailable: %v (no security fallback)", Status(10016), v.c.Security(), err)
+		modes = nil
 	}
-	available := strings.Join(modes, ", ")
-	if available == "" {
-		available = "no security tuples"
-	}
-	return fmt.Errorf("%w: requested %s; server advertises %s; select --sec explicitly (no security fallback)", Status(10016), v.c.Security(), available)
+	return &WrongSecurityError{Requested: v.c.Security(), Advertised: modes, SECINFOError: err}
 }

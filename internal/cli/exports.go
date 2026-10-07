@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/spf13/pflag"
 	"nfsclient/internal/nfs"
 )
 
 func discoveryFlags(f *pflag.FlagSet, o *nfs.DiscoveryOptions, recursive *bool) {
+	f.StringArrayVar(&o.Paths, "path", o.Paths, "Check an absolute known path even when its parent cannot be listed (repeatable)")
 	f.BoolVar(recursive, "recursive", false, "Explore NFSv4 directories to depth 3 (override with --depth)")
 	f.IntVar(&o.MaxDepth, "depth", o.MaxDepth, "Maximum NFSv4 discovery depth from the server root")
 	f.IntVar(&o.MaxEntries, "max-entries", o.MaxEntries, "Maximum discovery entries examined, including files")
@@ -28,7 +30,7 @@ func (s *Shell) discoverExports(ctx context.Context, args []string) error {
 		return err
 	}
 	if f.NArg() != 0 {
-		return fmt.Errorf("usage: exports [--recursive] [--depth N] [--max-entries N] [--discovery-timeout D] [--json]")
+		return fmt.Errorf("usage: exports [--path /known/path] [--recursive] [--depth N] [--max-entries N] [--discovery-timeout D] [--json]")
 	}
 	if recursive && !f.Changed("depth") {
 		o.MaxDepth = 3
@@ -52,7 +54,10 @@ func (s *Shell) discoverExports(ctx context.Context, args []string) error {
 		return "no"
 	}
 	for _, e := range r.Entries {
-		fmt.Fprintf(s.Out, "  %s  [%s]  %s  list=%s traverse=%s\n", paint(s.Color, warm, label(e.Path)), e.Source, e.Access, permission(e.CanList), permission(e.CanTraverse))
+		fmt.Fprintf(s.Out, "  %s  [%s]  %s  list=%s traverse=%s\n", paint(s.Color, warm, label(e.Path)), strings.Join(e.Sources, ", "), e.Access, permission(e.CanList), permission(e.CanTraverse))
+		if len(e.AdvertisedSecurity) > 0 {
+			fmt.Fprintln(s.Out, "    Advertised security: "+label(strings.Join(e.AdvertisedSecurity, ", ")))
+		}
 		if e.FilesystemBoundary {
 			fmt.Fprintln(s.Out, "    Filesystem boundary (not necessarily an export boundary)")
 		}

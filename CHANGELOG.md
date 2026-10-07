@@ -7,6 +7,10 @@ until a tagged release is published.
 
 ### Added
 
+- RFC-informed inspection: shared ACCESS evidence and `access`, explicit known
+  paths/provenance in `exports` and `scan`, connection `info`, per-path
+  `capabilities`, opt-in offline metadata, NFSv4 `locktest`, and bounded read-only
+  named-attribute listing/export. Inspection preserves the current identity.
 - Bounded NFSv4 namespace discovery in `exports` and `scan`, with current-identity
   access checks, filesystem boundaries, partial results, JSON output and traversal
   limits. NFSv2/v3 discovery checks advertised MOUNT exports; scan accepts explicit
@@ -46,6 +50,10 @@ until a tagged release is published.
 
 ### Fixed
 
+- Preserve NFSv4 SETATTR error payloads/status during chmod, reject incomplete
+  success acknowledgements, and explain possible partial metadata changes.
+- Retain ACCESS supported masks and NFSv4 execute-authorized read semantics in
+  inspection instead of treating unsupported checks as permission denials.
 - Reject malformed protocol envelopes and keytab inputs without exposing key data.
 - Preserve uncertain lock/offload state and require confirmed cleanup before
   reporting recovery completion; quarantine NLM state after crash notification.
