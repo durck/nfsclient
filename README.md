@@ -26,18 +26,26 @@ typed automatically, including Tab completion; terminal output and timing are
 captured directly. Downloaded bytes were verified. See
 [recording instructions](tests/README.md#recording-the-readme-demo).
 
-## Install from a release
+## Download a CI build
 
-No tagged release is declared by this source snapshot. Until the first release,
-build from source below or download a successful GitHub Actions build from the
-repository's **Actions → CI → Artifacts** page. CI artifacts are development
-builds identified by their workflow commit.
+There are no published releases yet. Download a development build from
+[GitHub Actions → CI](https://github.com/durck/nfsclient/actions/workflows/ci.yml),
+or [build from source](#build-and-start).
 
-When a tagged release is available, use its **Releases → Assets** downloads.
-Select `nfsclient-windows-amd64.exe` for Windows x64 or
-`nfsclient-linux-amd64` for Linux x64, and retain the accompanying `LICENSE`
-and `THIRD-PARTY-LICENSES.txt`. Extract the artifact and compare the binary's
-SHA-256 digest with its `SHA256SUMS` entry:
+Open a successful run on `main`, then select the archive under **Artifacts**:
+
+| Platform | Artifact | Executable inside |
+| --- | --- | --- |
+| Windows x64 | `nfsclient-Windows-amd64` | `nfsclient-windows-amd64.exe` |
+| Linux x64 | `nfsclient-Linux-amd64` | `nfsclient-linux-amd64` |
+
+Builds are identified by the run's commit and retained for 14 days. The
+`checks-*` artifacts contain verification logs, not executables. If no build
+artifact is available, build from source below.
+
+Extract the archive and keep the accompanying `LICENSE`,
+`THIRD-PARTY-LICENSES.txt` and `SHA256SUMS`. Compare the executable's SHA-256
+digest with its `SHA256SUMS` entry before running it:
 
 ```powershell
 Get-FileHash .\nfsclient-windows-amd64.exe -Algorithm SHA256
@@ -55,6 +63,13 @@ A checksum detects corrupted downloads; it is not a publisher signature.
 ## Build and start
 
 Go 1.26 is required; `go.mod` selects patched Go 1.26.8 automatically.
+
+Clone the repository and run the build commands from its directory:
+
+```sh
+git clone https://github.com/durck/nfsclient.git
+cd nfsclient
+```
 
 ```powershell
 $previousCGOEnabled = $env:CGO_ENABLED

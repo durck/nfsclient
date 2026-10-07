@@ -53,6 +53,8 @@ until a tagged release is published.
 
 ### Fixed
 
+- Installation instructions point to available CI artifacts and source builds
+  instead of describing downloads from unpublished releases.
 - `ls` and `stat` correctly treat option-looking literal paths after `--`.
 - Preserve NFSv4 SETATTR error payloads/status during chmod, reject incomplete
   success acknowledgements, and explain possible partial metadata changes.
