@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"nfsclient/internal/nfs"
+	"nfsclient/internal/resolve"
 	"nfsclient/internal/scan"
 )
 
@@ -26,6 +28,8 @@ func newScanCommand(out io.Writer) *cobra.Command {
 		noEscape    bool
 		output      string
 		file        string
+		dnsDomain   string
+		dnsServer   string
 		// auth
 		uid       uint32
 		gid       uint32
@@ -55,9 +59,24 @@ combine --no-squash-check and --no-escape-check.`,
 			if recursive && !cmd.Flags().Changed("depth") {
 				discovery.MaxDepth = 3
 			}
+			if pf, _ := cmd.Flags().GetString("paths-file"); pf != "" {
+				if lerr := loadPathsFile(pf, &discovery); lerr != nil {
+					return lerr
+				}
+			}
 			hosts, err := scan.ParseTargets(args, file)
 			if err != nil {
 				return err
+			}
+			if dnsDomain != "" {
+				srvHosts, srvErr := lookupNFSSRVHosts(cmd.Context(), dnsDomain, dnsServer)
+				if srvErr != nil {
+					return fmt.Errorf("DNS SRV lookup for %q: %w", dnsDomain, srvErr)
+				}
+				if len(srvHosts) == 0 {
+					return fmt.Errorf("no _nfs._tcp SRV records found for %q", dnsDomain)
+				}
+				hosts = append(hosts, srvHosts...)
 			}
 			if len(hosts) == 0 {
 				return fmt.Errorf("no targets found")
@@ -126,8 +145,28 @@ combine --no-squash-check and --no-escape-check.`,
 	cmd.Flags().StringVar(&password, "password", "", "Kerberos AS password")
 	cmd.Flags().StringVar(&domain, "domain", "", "Kerberos realm / Windows domain (qualifies bare --principal)")
 	cmd.Flags().StringVar(&krb5Cfg, "krb5-config", "", "Explicit krb5.conf path")
+	cmd.Flags().StringVar(&dnsDomain, "dns-domain", "", "Discover NFS servers via DNS SRV (_nfs._tcp.<domain>), RFC 6641")
+	cmd.Flags().StringVar(&dnsServer, "dns-server", "", "Custom DNS server (IP or IP:PORT) for --dns-domain lookup")
 
 	installScanHelp(cmd, out)
 	installStartupCompletions(cmd)
 	return cmd
+}
+
+// lookupNFSSRVHosts resolves _nfs._tcp.<domain> SRV records and returns the
+// target hostnames (RFC 6641). An empty dnsServer means use system DNS.
+func lookupNFSSRVHosts(ctx context.Context, domain, dnsServer string) ([]string, error) {
+	resolver, err := resolve.New(ctx, resolve.Config{Server: dnsServer})
+	if err != nil {
+		return nil, err
+	}
+	_, addrs, err := resolver.LookupSRV(ctx, "nfs", "tcp", domain)
+	if err != nil {
+		return nil, err
+	}
+	hosts := make([]string, 0, len(addrs))
+	for _, srv := range addrs {
+		hosts = append(hosts, strings.TrimSuffix(srv.Target, "."))
+	}
+	return hosts, nil
 }

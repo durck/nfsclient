@@ -26,8 +26,8 @@ var startupHelpGroups = []startupHelpGroup{
 }
 
 var scanHelpGroups = []startupHelpGroup{
-	{"targets", "Targets and connection", []string{"file", "nfs-version", "timeout", "concurrency", "portmap-port", "nfs-port", "mount-port"}},
-	{"discovery", "Discovery and checks", []string{"path", "recursive", "depth", "max-entries", "discovery-timeout", "no-squash-check", "no-escape-check"}},
+	{"targets", "Targets and connection", []string{"file", "dns-domain", "dns-server", "nfs-version", "timeout", "concurrency", "portmap-port", "nfs-port", "mount-port"}},
+	{"discovery", "Discovery and checks", []string{"path", "paths-file", "recursive", "depth", "max-entries", "discovery-timeout", "no-squash-check", "no-escape-check"}},
 	{"auth", "Identity and Kerberos authentication", []string{"uid", "gid", "groups", "sec", "principal", "keytab", "password", "domain", "krb5-config"}},
 	{"output", "Output and help", []string{"output", "help", "help-all"}},
 }

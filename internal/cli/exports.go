@@ -1,10 +1,12 @@
 package cli
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/spf13/pflag"
@@ -13,10 +15,34 @@ import (
 
 func discoveryFlags(f *pflag.FlagSet, o *nfs.DiscoveryOptions, recursive *bool) {
 	f.StringArrayVar(&o.Paths, "path", o.Paths, "Check an absolute known path even when its parent cannot be listed (repeatable)")
+	f.StringVar(new(string), "paths-file", "", "File of absolute server paths to probe (one per line, # comments)")
 	f.BoolVar(recursive, "recursive", false, "Explore NFSv4 directories to depth 3 (override with --depth)")
 	f.IntVar(&o.MaxDepth, "depth", o.MaxDepth, "Maximum NFSv4 discovery depth from the server root")
 	f.IntVar(&o.MaxEntries, "max-entries", o.MaxEntries, "Maximum discovery entries examined, including files")
 	f.DurationVar(&o.Timeout, "discovery-timeout", o.Timeout, "Total discovery time budget")
+}
+
+// loadPathsFile reads an absolute-path wordlist (one per line, # comments) and
+// appends valid entries to o.Paths. It does not deduplicate; DiscoveryOptions.Validate
+// will reject paths that exceed the budget.
+func loadPathsFile(file string, o *nfs.DiscoveryOptions) error {
+	if file == "" {
+		return nil
+	}
+	f, err := os.Open(file)
+	if err != nil {
+		return fmt.Errorf("open paths-file: %w", err)
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		o.Paths = append(o.Paths, line)
+	}
+	return sc.Err()
 }
 
 func (s *Shell) discoverExports(ctx context.Context, args []string) error {
@@ -30,7 +56,12 @@ func (s *Shell) discoverExports(ctx context.Context, args []string) error {
 		return err
 	}
 	if f.NArg() != 0 {
-		return fmt.Errorf("usage: exports [--path /known/path] [--recursive] [--depth N] [--max-entries N] [--discovery-timeout D] [--json]")
+		return fmt.Errorf("usage: exports [--path /known/path] [--paths-file FILE] [--recursive] [--depth N] [--max-entries N] [--discovery-timeout D] [--json]")
+	}
+	if pf, _ := f.GetString("paths-file"); pf != "" {
+		if err := loadPathsFile(pf, &o); err != nil {
+			return err
+		}
 	}
 	if recursive && !f.Changed("depth") {
 		o.MaxDepth = 3

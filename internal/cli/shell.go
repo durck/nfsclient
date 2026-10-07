@@ -1173,6 +1173,9 @@ func (s *Shell) Execute(ctx context.Context, line string) (bool, error) {
 		var mode uint32
 		mode, err = parseMode(a[1])
 		if err == nil {
+			if strings.HasPrefix(s.Session.Client.Version(), "4") {
+				fmt.Fprintln(s.Err, "Note: on NFSv4, chmod may silently modify existing ACL entries (RFC 7530 §6.4.1).")
+			}
 			err = sess.Chmod(ctx, a[2], mode)
 		}
 	case "mkdir":
