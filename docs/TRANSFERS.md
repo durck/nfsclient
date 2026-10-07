@@ -162,6 +162,11 @@ puttree local-directory new-remote-directory
 gettree remote-directory new-local-directory
 ```
 
+Options may appear before or after the two paths, for example
+`gettree remote-directory new-local-directory --skip-offline`. Use `--` to
+end option parsing before literal paths beginning with `-`. `help gettree`
+and `help puttree` show the complete supported options inside the client.
+
 By default both commands require a new destination root. `--merge` reuses
 existing directories and adds missing entries; existing files or links are
 never replaced or silently skipped. Directory links and case-insensitive name

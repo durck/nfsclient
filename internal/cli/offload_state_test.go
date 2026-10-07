@@ -42,7 +42,8 @@ func TestOffloadStateHelp(t *testing.T) {
 		args []string
 		want []string
 	}{
-		{[]string{"--help"}, []string{"offload-state", "--offload-journal", "block-state"}},
+		{[]string{"--help"}, []string{"offload-state", "recovery", "block-state"}},
+		{[]string{"--help-all"}, []string{"--offload-journal", "--recover-offload"}},
 		{[]string{"offload-state", "--help"}, []string{"nfsclient offload-state", "inspect", "ack"}},
 		{[]string{"offload-state", "ack", "--help"}, []string{"ABSOLUTE_FILE OPERATION_ID", "--server-quiesced", "--destination-verified"}},
 		{[]string{"block-state", "--help"}, []string{"nfsclient block-state", "inspect", "ack"}},

@@ -13,18 +13,14 @@ import (
 	"os/signal"
 	"path"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/chzyer/readline"
 	"nfsclient/internal/nfs"
 	"nfsclient/internal/session"
 )
-
-var commands = []string{"access", "info", "capabilities", "namedattrs", "getnamedattr", "exports", "use", "reconnect", "migrate", "lock-save", "offload-reconcile", "lock", "locktest", "nlmrecover", "locks", "unlock", "pwd", "cd", "ls", "stat", "acl", "getacl", "setacl", "label", "setlabel", "xattrs", "getxattr", "setxattr", "removexattr", "cat", "hex", "get", "getplus", "getpnfs", "putrangepnfs", "putpnfs", "getrange", "putrange", "reget", "reput", "replace", "gettree", "puttree", "put", "chmod", "mkdir", "rm", "rmdir", "mv", "copyrange", "clonerange", "copyasync", "copyfrom", "writesame", "writeadb", "advise", "seek", "allocate", "deallocate", "id", "uid", "uid-scan", "auto-uid", "auto-uid-scan", "escape", "root", "auto-escape", "squash", "lpwd", "lcd", "lls", "help", "legend", "exit", "quit"}
 
 func parseLockRange(args []string) (uint64, uint64, error) {
 	if len(args) == 0 {
@@ -169,6 +165,11 @@ func (s *Shell) Execute(ctx context.Context, line string) (bool, error) {
 	if len(a) == 0 {
 		return false, nil
 	}
+	// Help is resolved before any parameter parsing or network operation. Only
+	// the standalone form is reserved; values such as "get file --help" remain paths.
+	if len(a) == 2 && (a[1] == "--help" || a[1] == "-h") {
+		return false, s.printCommandHelp(a[0])
+	}
 	retries := 0
 	reclaim := false
 	var failover []nfs.ReadReplica
@@ -264,10 +265,14 @@ func (s *Shell) Execute(ctx context.Context, line string) (bool, error) {
 	case "exit", "quit":
 		return true, check(0, 0, a[0])
 	case "help":
-		if err := check(0, 0, "help"); err != nil {
+		if err := check(0, 1, "help [COMMAND|TOPIC|all]"); err != nil {
 			return false, err
 		}
-		err = s.printHelp()
+		topic := ""
+		if argc == 1 {
+			topic = a[1]
+		}
+		err = s.printCommandHelp(topic)
 	case "legend":
 		if err := check(0, 0, "legend"); err != nil {
 			return false, err
@@ -484,29 +489,31 @@ func (s *Shell) Execute(ctx context.Context, line string) (bool, error) {
 		}
 		err = sess.CD(ctx, p)
 	case "ls":
-		if slices.Contains(a[1:], "--offline") {
-			return false, s.listWithOffline(ctx, a[1:])
+		p, offline, parseErr := inspectionPath(a[1:], "--offline", false)
+		if parseErr != nil {
+			return false, fmt.Errorf("usage: ls [--offline] [PATH]: %w", parseErr)
 		}
-		if err := check(0, 1, "ls [PATH]"); err != nil {
-			return false, err
+		if offline {
+			return false, s.listWithOffline(ctx, a[1:])
 		}
 		var entries []nfs.Entry
 		var links map[string]session.LinkInfo
-		entries, links, err = sess.List(ctx, optional(), 32)
+		entries, links, err = sess.List(ctx, p, 32)
 		if entries != nil {
 			if printErr := s.printEntries(entries, links); printErr != nil {
 				return false, printErr
 			}
 		}
 	case "stat":
-		if slices.Contains(a[1:], "--offline") {
+		p, offline, parseErr := inspectionPath(a[1:], "--offline", true)
+		if parseErr != nil {
+			return false, fmt.Errorf("usage: stat [--offline] PATH: %w", parseErr)
+		}
+		if offline {
 			return false, s.statWithOffline(ctx, a[1:])
 		}
-		if err := check(1, 1, "stat PATH"); err != nil {
-			return false, err
-		}
 		var n nfs.Node
-		n, _, err = sess.Resolve(ctx, a[1], false)
+		n, _, err = sess.Resolve(ctx, p, false)
 		if err == nil {
 			enc := json.NewEncoder(s.Out)
 			enc.SetIndent("", "  ")
@@ -1100,32 +1107,9 @@ func (s *Shell) Execute(ctx context.Context, line string) (bool, error) {
 		count, err = sess.GetPlus(ctx, a[1], s.local(a[2]), p.Update)
 		p.Finish(count, err)
 	case "gettree", "puttree":
-		options := session.TreeOptions{}
-		args := a[1:]
-		for len(args) > 0 && strings.HasPrefix(args[0], "--") {
-			switch args[0] {
-			case "--merge":
-				options.Merge = true
-			case "--links":
-				options.Links = true
-			case "--hardlinks":
-				options.Hardlinks = true
-			case "--preserve-mode":
-				options.Mode = true
-			case "--preserve-mtime":
-				options.MTime = true
-			case "--skip-offline":
-				if a[0] != "gettree" {
-					return false, errors.New("--skip-offline is only available for gettree")
-				}
-				options.SkipOffline = true
-			default:
-				return false, fmt.Errorf("unknown tree option %q", args[0])
-			}
-			args = args[1:]
-		}
-		if len(args) != 2 || strings.HasPrefix(args[0], "--") {
-			return false, fmt.Errorf("usage: %s [--merge] [--links] [--hardlinks] [--preserve-mode] [--preserve-mtime] [--skip-offline (gettree only)] SOURCE DESTINATION", a[0])
+		options, args, parseErr := parseTreeOptions(a[0], a[1:])
+		if parseErr != nil {
+			return false, parseErr
 		}
 		var count int64
 		if a[0] == "gettree" {
@@ -1504,117 +1488,4 @@ func (s *Shell) runInteractive(parent context.Context, history string, configure
 			return ctx.Err()
 		}
 	}
-}
-
-type completer struct {
-	shell *Shell
-	ctx   context.Context
-}
-
-func (c *completer) Do(line []rune, pos int) ([][]rune, int) {
-	if pos < 0 || pos > len(line) {
-		return nil, 0
-	}
-	text := string(line[:pos])
-	a, err := SplitLine(text)
-	if err != nil {
-		return nil, 0
-	}
-	if pos == 0 || unicode.IsSpace(line[pos-1]) {
-		a = append(a, "")
-	}
-	if len(a) == 0 {
-		return nil, 0
-	}
-	prefix := a[len(a)-1]
-	var values []string
-	if len(a) == 1 {
-		values = commands
-	} else {
-		ctx, cancel := context.WithTimeout(c.ctx, 2*time.Second)
-		defer cancel()
-		if a[0] == "root" && len(a) == 2 {
-			values = []string{"info", "verify", "reset", "discovered", "probe"}
-		} else if (a[0] == "lock" || a[0] == "locktest") && len(a) == 3 {
-			values = []string{"read", "write"}
-		} else if (a[0] == "lock" || a[0] == "locktest") && len(a) == 5 {
-			values = []string{"eof"}
-		} else if a[0] == "unlock" && len(a) == 2 {
-			for _, l := range c.shell.Session.Client.Locks() {
-				values = append(values, strconv.FormatUint(l.ID, 10))
-			}
-		} else if a[0] == "reconnect" && len(a) == 2 {
-			values = []string{"--discard-locks", "--reclaim-locks"}
-		} else if a[0] == "use" && len(a) == 2 {
-			exports, err := c.shell.Session.Client.Exports(ctx)
-			if err != nil {
-				return nil, 0
-			}
-			for _, e := range exports {
-				values = append(values, e.Path)
-			}
-		} else {
-			local := a[0] == "put" && len(a) == 2 || (a[0] == "get" || a[0] == "getacl" || a[0] == "setacl") && len(a) == 3 || (a[0] == "lcd" || a[0] == "lls") && len(a) == 2
-			remote := (a[0] == "lock" || a[0] == "locktest" || a[0] == "cd" || a[0] == "ls" || a[0] == "stat" || a[0] == "acl" || a[0] == "getacl" || a[0] == "setacl" || a[0] == "label" || a[0] == "setlabel" || a[0] == "xattrs" || a[0] == "getxattr" || a[0] == "setxattr" || a[0] == "removexattr" || a[0] == "cat" || a[0] == "hex" || a[0] == "get" || a[0] == "mkdir") && len(a) == 2 || (a[0] == "chmod" || a[0] == "put") && len(a) == 3
-			if !local && !remote {
-				return nil, 0
-			}
-			if local {
-				dir, _ := filepath.Split(prefix)
-				entries, err := os.ReadDir(c.shell.local(dir))
-				if err != nil {
-					return nil, 0
-				}
-				for _, e := range entries {
-					if a[0] == "lcd" && !e.IsDir() {
-						continue
-					}
-					name := dir + e.Name()
-					if e.IsDir() {
-						name += string(filepath.Separator)
-					}
-					values = append(values, name)
-				}
-			} else {
-				dir, _ := path.Split(prefix)
-				if dir == "" {
-					dir = "."
-				}
-				old := c.shell.Session.Client.Auth
-				inspection := *c.shell.Session
-				if a[0] == "acl" || a[0] == "getacl" || a[0] == "setacl" {
-					inspection.AutoUID = false
-				}
-				entries, err := inspection.LS(ctx, dir)
-				c.shell.Session.Client.Auth = old
-				if err != nil {
-					return nil, 0
-				}
-				base, _ := path.Split(prefix)
-				for _, e := range entries {
-					if a[0] == "cd" && e.Attr.Type != 2 {
-						continue
-					}
-					name := base + e.Name
-					if e.Attr.Type == 2 {
-						name += "/"
-					}
-					values = append(values, name)
-				}
-			}
-		}
-	}
-	var out [][]rune
-	for _, value := range values {
-		if !strings.HasPrefix(value, prefix) || strings.IndexFunc(value, unicode.IsControl) >= 0 {
-			continue
-		}
-		suffix := strings.TrimPrefix(value, prefix)
-		suffix = strings.NewReplacer(" ", "\\ ", "'", "\\'", "\"", "\\\"").Replace(suffix)
-		if !strings.HasSuffix(value, "/") && !strings.HasSuffix(value, "\\") {
-			suffix += " "
-		}
-		out = append(out, []rune(suffix))
-	}
-	return out, len([]rune(prefix))
 }

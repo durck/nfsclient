@@ -7,6 +7,9 @@ until a tagged release is published.
 
 ### Added
 
+- Concise startup and shell help, complete topic/command references and
+  context-aware Tab completion for options, values and quoted paths. Startup
+  shell-completion scripts include enum and file/directory flag suggestions.
 - RFC-informed inspection: shared ACCESS evidence and `access`, explicit known
   paths/provenance in `exports` and `scan`, connection `info`, per-path
   `capabilities`, opt-in offline metadata, NFSv4 `locktest`, and bounded read-only
@@ -50,6 +53,7 @@ until a tagged release is published.
 
 ### Fixed
 
+- `ls` and `stat` correctly treat option-looking literal paths after `--`.
 - Preserve NFSv4 SETATTR error payloads/status during chmod, reject incomplete
   success acknowledgements, and explain possible partial metadata changes.
 - Retain ACCESS supported masks and NFSv4 execute-authorized read semantics in
@@ -64,6 +68,8 @@ until a tagged release is published.
 
 ### Changed
 
+- Tree-transfer flags accept either side of positional paths; `--` ends option
+  parsing before literal filenames.
 - Report permission denial without inferring an IP restriction, and stop treating
   ordinary NFSv4 pseudo-root navigation as a root-escape vulnerability.
 - Replace the captioned batch demo with a native Windows interactive terminal

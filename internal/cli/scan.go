@@ -42,32 +42,9 @@ func newScanCommand(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "scan [flags] <targets...>",
 		Short: "Scan NFS servers for exposed exports and vulnerabilities",
-		Long: `Scan one or more hosts for NFS services. For each host, lists exports,
-discovers the NFSv4 namespace or NFSv2/v3 MOUNT exports, checks current-identity
-access, and optionally probes no_root_squash and NFSv2/v3 root-handle escape.
-
-Target formats:
-  192.168.1.10            single IP
-  192.168.1.0/24          CIDR range
-  10.0.0.1-10.0.0.20     explicit range
-  10.0.0.1-20             last-octet shorthand
-
-Use -f to load targets from a file (one per line; lines starting with # ignored).
-
-Permission denied does not establish an IP restriction. Advertised MOUNT client
-rules are shown separately; NFSv4 does not advertise these rules. Discovery is
-bounded and reports partial results. Use --recursive or --depth for deeper walks.
-Squash checks create and remove a temporary file; use --no-squash-check and
---no-escape-check for read-only discovery under the selected identity.
-
-AUTH_SYS example:
-  nfsclient scan 192.168.1.0/24 --uid 0
-
-Kerberos example (keytab):
-  nfsclient scan 192.168.1.0/24 --sec krb5 --principal user@CORP.LOCAL --keytab user.keytab
-
-Kerberos example (password):
-  nfsclient scan 192.168.1.0/24 --sec krb5 --principal user --domain CORP.LOCAL --password Secret123`,
+		Long: `Discover NFS exports and check access under the selected identity.
+Squash checks create and remove a temporary file. For read-only discovery,
+combine --no-squash-check and --no-escape-check.`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 && file == "" {
 				return fmt.Errorf("specify at least one target or use --file")
@@ -140,8 +117,8 @@ Kerberos example (password):
 	cmd.Flags().StringVarP(&output, "output", "o", "text", "output format: text or json")
 	cmd.Flags().StringVarP(&file, "file", "f", "", "file containing targets (one per line)")
 	// auth flags
-	cmd.Flags().Uint32VarP(&uid, "uid", "u", 65534, "AUTH_SYS UID (default nobody/65534)")
-	cmd.Flags().Uint32VarP(&gid, "gid", "g", 65534, "AUTH_SYS GID (default nobody/65534)")
+	cmd.Flags().Uint32VarP(&uid, "uid", "u", 65534, "AUTH_SYS UID")
+	cmd.Flags().Uint32VarP(&gid, "gid", "g", 65534, "AUTH_SYS GID")
 	cmd.Flags().StringVar(&groups, "groups", "", "AUTH_SYS supplementary GIDs, comma-separated")
 	cmd.Flags().StringVarP(&sec, "sec", "s", "sys", "security: sys, krb5, krb5i, krb5p")
 	cmd.Flags().StringVar(&principal, "principal", "", "Kerberos principal NAME@REALM")
@@ -150,5 +127,7 @@ Kerberos example (password):
 	cmd.Flags().StringVar(&domain, "domain", "", "Kerberos realm / Windows domain (qualifies bare --principal)")
 	cmd.Flags().StringVar(&krb5Cfg, "krb5-config", "", "Explicit krb5.conf path")
 
+	installScanHelp(cmd, out)
+	installStartupCompletions(cmd)
 	return cmd
 }

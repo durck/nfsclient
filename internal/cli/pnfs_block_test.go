@@ -521,7 +521,7 @@ func TestBlockCLIArguments(t *testing.T) {
 		})
 	}
 	var help bytes.Buffer
-	if _, err := (&Shell{Out: &help, Err: io.Discard}).Execute(context.Background(), "help"); err != nil || !strings.Contains(help.String(), "--block-volume") {
+	if _, err := (&Shell{Out: &help, Err: io.Discard}).Execute(context.Background(), "help getpnfs"); err != nil || !strings.Contains(help.String(), "--block-volume") {
 		t.Fatal("block help missing", err)
 	}
 }

@@ -114,10 +114,10 @@ func TestRootFailedSwitchPreservesState(t *testing.T) {
 
 func TestRootCompletionAndHelp(t *testing.T) {
 	sh, _, out := testShell(t)
-	if err := sh.printHelp(); err != nil {
+	if err := sh.printCommandHelp("root"); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(out.String(), "root info|verify|reset") {
+	if !strings.Contains(out.String(), "root [info|verify|reset") {
 		t.Fatal("root commands absent from help")
 	}
 	c := completer{shell: sh, ctx: context.Background()}

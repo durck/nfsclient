@@ -112,7 +112,7 @@ func TestNFS4ACLCommandsValidateBeforeNetwork(t *testing.T) {
 		t.Fatal("failed ACL command changed identity or printed success")
 	}
 	for _, command := range []string{"acl", "getacl", "setacl"} {
-		if !slices.Contains(commands, command) {
+		if !slices.Contains(shellCommandNames(), command) {
 			t.Fatalf("missing completion %s", command)
 		}
 	}

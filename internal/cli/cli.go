@@ -72,7 +72,7 @@ func NewCommand(in io.Reader, out, errOut io.Writer) *cobra.Command {
 	f.StringVar(&cfg.Kerberos.SPN, "spn", "", "Kerberos service principal nfs/server-hostname")
 	f.StringVar(&krbPassword, "password", "", "Kerberos AS password (use with --principal NAME@REALM or --principal NAME and --domain REALM)")
 	f.StringVar(&krbDomain, "domain", "", "Kerberos realm / Windows domain; shorthand for the realm part of --principal")
-	f.Uint32Var(&cfg.Kerberos.RPCVersion, "rpcsec-gss-version", 1, "RPCSEC_GSS version: 1 (default), 3 (explicit v4.2 krb5p/TCP; no pNFS)")
+	f.Uint32Var(&cfg.Kerberos.RPCVersion, "rpcsec-gss-version", 1, "RPCSEC_GSS version: 1, 3 (explicit v4.2 krb5p/TCP; no pNFS)")
 	f.IntVar(&cfg.PortmapPort, "portmap-port", 111, "Portmapper port on the selected transport")
 	f.IntVar(&cfg.MountPort, "mount-port", 0, "Mount port (0 = discover)")
 	f.IntVar(&cfg.NFSPort, "nfs-port", 0, "NFS port (0 = discover)")
@@ -97,32 +97,12 @@ func NewCommand(in io.Reader, out, errOut io.Writer) *cobra.Command {
 	f.StringVar(&colorMode, "color", "auto", "Color output: auto, always, never (auto honors NO_COLOR)")
 	f.StringVar(&progressMode, "progress", "auto", "Transfer progress: auto, always, never (written to stderr)")
 	f.BoolVar(&noBanner, "no-banner", false, "Hide the startup/help banner")
-	defaultHelp := cmd.HelpFunc()
-	cmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
-		if cmd.Parent() != nil {
-			defaultHelp(cmd, args)
-			return
-		}
-		ansi, restore := enableANSI(out)
-		defer restore()
-		color := useColor(colorMode, ansi)
-		if !noBanner {
-			printBanner(out, color)
-		}
-		fmt.Fprint(out, "  Browse NFS shares without mounting them. Windows + Linux.\n\n")
-		fmt.Fprintln(out, paint(color, bold, "Usage:")+"\n  nfsclient HOST [flags]\n  nfsclient <command> [flags]\n")
-		fmt.Fprintln(out, paint(color, bold, "Commands:")+
-			"\n  scan           "+paint(color, muted, "Scan NFS servers for exposed exports and vulnerabilities")+
-			"\n  offload-state  "+paint(color, muted, "Inspect or acknowledge local offload crash evidence")+
-			"\n  block-state    "+paint(color, muted, "Inspect block crash evidence without contacting NFS or storage")+
-			"\n  lock-state     "+paint(color, muted, "Inspect durable lock evidence offline")+
-			"\n")
-		fmt.Fprintln(out, paint(color, bold, "Examples:")+"\n  nfsclient nfs.example.test\n  nfsclient nfs.example.test --export /data\n  nfsclient nfs.example.test -e /data -c 'ls'\n  nfsclient scan 192.168.1.0/24\n")
-		fmt.Fprintln(out, paint(color, bold, "In the shell:")+"\n  ls · cd · cat · hex · get · put · chmod · exports · help\n")
-		fmt.Fprintln(out, paint(color, bold, "Flags:"))
-		fmt.Fprint(out, cmd.Flags().FlagUsagesWrapped(96))
-	})
+	installStartupHelp(cmd, out, &colorMode, &noBanner)
+	installStartupCompletions(cmd)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		if helpAllRequested(cmd) {
+			return cmd.Help()
+		}
 		if colorMode != "auto" && colorMode != "always" && colorMode != "never" {
 			return fmt.Errorf("--color must be auto, always, or never")
 		}

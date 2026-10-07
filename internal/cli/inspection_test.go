@@ -94,3 +94,25 @@ func TestInspectionUsageRejectsBeforeSession(t *testing.T) {
 		t.Fatal(p, found, err)
 	}
 }
+
+// A literal option-looking filename must not activate optional metadata requests.
+func TestInspectionLiteralOptionFilename(t *testing.T) {
+	sh, root, out := testShell(t)
+	if err := os.WriteFile(filepath.Join(root, "--offline"), []byte("data"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, command := range []string{"ls -- --offline", "stat -- --offline"} {
+		out.Reset()
+		if _, err := sh.Execute(context.Background(), command); err != nil {
+			t.Fatalf("%s: %v", command, err)
+		}
+		if strings.Contains(out.String(), `"offline"`) || strings.Contains(out.String(), "[unknown]") {
+			t.Fatalf("optional metadata requested: %s", out.String())
+		}
+	}
+	for _, command := range []string{"ls --unknown", "stat --unknown"} {
+		if _, err := sh.Execute(context.Background(), command); err == nil || !strings.Contains(err.Error(), "unknown option") {
+			t.Fatalf("%s: %v", command, err)
+		}
+	}
+}

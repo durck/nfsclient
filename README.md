@@ -108,8 +108,44 @@ is cached per connection and refreshed after reconnect or server changes.
 
 Remote paths use `/`; relative paths and symlinks are interpreted within the
 selected root. Commands do not invoke a local shell or expand wildcards and
-environment variables. Quote names containing spaces. Tab completes commands
-and paths; optional `--history FILE` persists history, otherwise it stays in memory.
+environment variables. Quote names containing spaces. Tab completes commands,
+help topics, options, supported values and local/remote paths, including quoted
+paths. Remote suggestions use the current identity with a two-second deadline;
+completion never switches UID or probes for another root. Optional `--history
+FILE` persists history, otherwise it stays in memory.
+
+### Help and completion
+
+The default help is a short overview. Open the relevant topic or command for
+its complete syntax; existing option names remain supported.
+
+```text
+nfsclient --help
+nfsclient help auth
+nfsclient help tls
+nfsclient --help-all
+nfsclient help scan
+nfsclient help shell gettree
+```
+
+Inside the client, use `help`, `help transfer`, `help gettree`, or `gettree --help`.
+`help all` prints the full shell reference. Standalone `COMMAND -h` also works.
+The same reference is available before connecting via `nfsclient help shell`.
+Tree-transfer options may precede or follow paths. For `ls`, `stat`, inspection
+and tree-transfer commands, `--` ends options so a filename such as `--offline`
+can be used literally. Other commands show their required option positions in
+their individual help.
+
+Interactive Tab completion works immediately. For operating-system shell
+completion, install the executable as `nfsclient.exe` on Windows or `nfsclient`
+on Linux: generated scripts register that command name. Generate its script
+with `nfsclient completion bash`, `zsh`, `fish` or `powershell`. See
+`nfsclient completion SHELL --help` for installation instructions. For the
+current PowerShell session:
+
+```powershell
+.\nfsclient.exe completion powershell | Out-String | Invoke-Expression
+```
 
 Listings escape control characters and show link targets. `cat` validates a
 bounded UTF-8 preview before printing to a terminal; redirected output retains

@@ -183,7 +183,7 @@ func TestNativeReadFailover(t *testing.T) {
 
 func TestReadFailoverHelp(t *testing.T) {
 	sh, _, out := testShell(t)
-	if _, err := sh.Execute(context.Background(), "help"); err != nil || !strings.Contains(out.String(), "--failover HOST:PORT,SPN,TLS_NAME") {
+	if _, err := sh.Execute(context.Background(), "help reget"); err != nil || !strings.Contains(out.String(), "--failover HOST:PORT,SPN,TLS_NAME") {
 		t.Fatal("missing failover help", err)
 	}
 }

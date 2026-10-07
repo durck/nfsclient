@@ -234,7 +234,7 @@ func TestLockRangeSyntax(t *testing.T) {
 		t.Fatal("range formatting")
 	}
 	sh, _, out := testShell(t)
-	if err := sh.printHelp(); err != nil || !strings.Contains(out.String(), "OFFSET LENGTH|eof") {
+	if err := sh.printCommandHelp("lock"); err != nil || !strings.Contains(out.String(), "OFFSET LENGTH|eof") {
 		t.Fatal("range help", err)
 	}
 	c := completer{shell: sh, ctx: context.Background()}
