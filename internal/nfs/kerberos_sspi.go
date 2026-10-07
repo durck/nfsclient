@@ -28,7 +28,7 @@ func validateSSPIProfile(cfg *Config) error {
 	if err := sspi.ValidateNames(k.Principal, k.SPN); err != nil {
 		return err
 	}
-	if k.ConfigFile != "" || k.Keytab != "" || k.CCache != "" || k.KCMSocket != "" || k.ASAlias != "" || k.EnterpriseUPN != "" || k.ASStartRealm != "" || len(k.ASReferralRealms) != 0 || k.ASHelper != "" || k.FASTArmor != "" || k.RequireFAST || k.PKINIT.Selected() {
+	if k.ConfigFile != "" || k.Keytab != "" || k.CCache != "" || k.Password != "" || k.KCMSocket != "" || k.ASAlias != "" || k.EnterpriseUPN != "" || k.ASStartRealm != "" || len(k.ASReferralRealms) != 0 || k.ASHelper != "" || k.FASTArmor != "" || k.RequireFAST || k.PKINIT.Selected() {
 		return errors.New("SSPI selects only the current Windows logon; explicit Kerberos files, caches and AS options cannot be mixed")
 	}
 	if cfg.TLS.Enabled || cfg.PNFS || cfg.Offload || k.RPCVersion != 0 && k.RPCVersion != 1 {

@@ -12,12 +12,15 @@ type ServerImplementation struct {
 }
 
 type ConnectionInfo struct {
+	RequestedHost        string                 `json:"requested_host"`
 	Hostname             string                 `json:"hostname"`
 	Peer                 string                 `json:"peer"`
+	MountPeer            string                 `json:"mount_peer,omitempty"`
 	IP                   string                 `json:"ip"`
 	Version              string                 `json:"version"`
 	Transport            string                 `json:"transport"`
 	Security             string                 `json:"security"`
+	Identity             string                 `json:"identity"`
 	Principal            string                 `json:"principal,omitempty"`
 	UID                  uint32                 `json:"uid"`
 	GID                  uint32                 `json:"gid"`
@@ -32,8 +35,13 @@ func (c *Client) ConnectionInfo(ctx context.Context) ConnectionInfo {
 	name, ip := c.ServerInfo(ctx)
 	r := ConnectionInfo{Hostname: name, IP: ip, Version: c.Version(), Security: c.Security(), Principal: c.principal, UID: c.Auth.UID, GID: c.Auth.GID, TLS: c.TLSActive(), TLSVerified: c.TLSCertificateVerified()}
 	r.Groups = append([]uint32{}, c.Auth.Groups...)
+	r.Identity = c.Identity()
 	if c.config != nil {
+		r.RequestedHost = c.config.Host
 		r.TLSInsecureRequested = c.config.TLS.InsecureSkipVerify
+	}
+	if c.mount != nil && c.mount.conn != nil {
+		r.MountPeer = c.mount.conn.RemoteAddr().String()
 	}
 	if c.nfs != nil && c.nfs.conn != nil {
 		r.Peer = c.nfs.conn.RemoteAddr().String()

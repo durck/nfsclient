@@ -32,15 +32,19 @@ func newScanCommand(out io.Writer) *cobra.Command {
 		dnsDomain   string
 		dnsServer   string
 		// auth
-		uid       uint32
-		gid       uint32
-		groups    string
-		sec       string
-		principal string
-		keytab    string
-		password  string
-		domain    string
-		krb5Cfg   string
+		uid        uint32
+		gid        uint32
+		groups     string
+		sec        string
+		principal  string
+		keytab     string
+		ccache     string
+		kcmSocket  string
+		spn        string
+		targetSPNs []string
+		password   string
+		domain     string
+		krb5Cfg    string
 	)
 	discovery := nfs.DefaultDiscoveryOptions()
 
@@ -74,15 +78,20 @@ combine --no-squash-check and --no-escape-check.`,
 			if err != nil {
 				return err
 			}
-			krb := nfs.KerberosConfig{
+			krb := qualifyKerberos(nfs.KerberosConfig{
 				Principal:  principal,
 				Keytab:     keytab,
-				Password:   password,
+				CCache:     ccache,
+				KCMSocket:  kcmSocket,
+				SPN:        spn,
 				ConfigFile: krb5Cfg,
-			}
-			// --domain qualifies a bare --principal with a realm.
-			if domain != "" && krb.Principal != "" && !strings.Contains(krb.Principal, "@") {
-				krb.Principal = krb.Principal + "@" + strings.ToUpper(domain)
+			}, domain, password)
+			if sec == "krb5" || sec == "krb5i" || sec == "krb5p" {
+				for _, name := range []string{"uid", "gid", "groups"} {
+					if cmd.Flags().Changed(name) {
+						return fmt.Errorf("--%s cannot select a Kerberos identity; use --principal", name)
+					}
+				}
 			}
 
 			opts := scan.Options{
@@ -101,6 +110,7 @@ combine --no-squash-check and --no-escape-check.`,
 				Groups:      gids,
 				Security:    sec,
 				Kerberos:    krb,
+				TargetSPNs:  targetSPNs,
 				DNS:         resolve.Config{Server: dnsServer},
 			}
 			if err := opts.Validate(); err != nil {
@@ -157,6 +167,10 @@ combine --no-squash-check and --no-escape-check.`,
 	cmd.Flags().StringVarP(&sec, "sec", "s", "sys", "security: sys, krb5, krb5i, krb5p")
 	cmd.Flags().StringVar(&principal, "principal", "", "Kerberos principal NAME@REALM")
 	cmd.Flags().StringVar(&keytab, "keytab", "", "Kerberos keytab file")
+	cmd.Flags().StringVar(&ccache, "ccache", "", "Explicit Kerberos FILE cache path, Linux KCM/KEYRING or Windows MSLSA:CURRENT")
+	cmd.Flags().StringVar(&kcmSocket, "kcm-socket", "", "Explicit absolute trusted Linux KCM socket; requires --ccache KCM:name")
+	cmd.Flags().StringVar(&spn, "spn", "", "Explicit Kerberos nfs/server-hostname for one target endpoint")
+	cmd.Flags().StringArrayVar(&targetSPNs, "target-spn", nil, "Per-target HOST[:PORT]=nfs/server-hostname (repeatable); pin --nfs-port when the legacy port is unknown")
 	cmd.Flags().StringVar(&password, "password", "", "Kerberos AS password")
 	cmd.Flags().StringVar(&domain, "domain", "", "Kerberos realm / Windows domain (qualifies bare --principal)")
 	cmd.Flags().StringVar(&krb5Cfg, "krb5-config", "", "Explicit krb5.conf path")

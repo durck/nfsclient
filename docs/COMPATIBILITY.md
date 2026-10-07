@@ -17,6 +17,10 @@ This table and the operation guides define current support.
 | NFSv4.0/4.1/4.2 | Direct COMPOUND, ordinary OPEN/read/write/close, negotiated session budgets and leases | Fixed state/identity checks; exact original-slot recovery requires an explicit policy |
 | Selection/discovery | AUTH_SYS/Kerberos explicit auto TCP 4.2 -> 4.1 -> 4.0 -> 3 -> 2; UDP 3 -> 2; explicit service ports and rpcbind/MOUNT | Only version mismatches allow fallback; pNFS/advanced paths require explicit versions |
 | Resource inspection | Bounded `exports` namespace/MOUNT discovery plus explicit `--path`, provenance, security/referral boundaries and `access` observations | Fixed current identity; hidden paths require supplied names; no claim to enumerate server configuration |
+| Listing evidence | `listed_entries` / `listing_complete` for attempted NFSv4 discovery READDIR | Empty requires zero entries and confirmed EOF; ACCESS permission alone is not listing evidence |
+| Explicit links / ownership | `ln` / `ln -s` on v3/v4, `readlink`, v2/v3 numeric and v4 string `chown` / `chgrp` with readback | Fixed identity, no destination replacement for links; final symlinks rejected for hardlink sources/ownership; uncertain mutations are not automatically replayed |
+| Legacy mount / handle diagnostics | `mounts` bounds MOUNT DUMP to 4096 records / 5 seconds; `handle` emits opaque hex and connection context | MOUNT records are not active-client evidence; unavailable on v4 without contacting mountd; handle output is not an import/recovery format |
+| Protected scan | Explicit one-endpoint `--spn` or per-target `--target-spn`; keytab, ccache or password | No guessed service identity or authentication downgrade; validated with a disposable MIT KDC/Ganesha over v3/v4.0/v4.1/v4.2 TCP using krb5p |
 | Capability/connection inspection | `info`, per-path `capabilities`, explicit `ls --offline` / `stat --offline` | Advertisement differs from successful operation; unknown remains unknown; optional metadata never opens content |
 | Named-attribute inspection | NFSv4 OPENATTR(false), bounded listing and export to a new local file | Up to 64 entries / 64 KiB per exported value; separate from RFC 8276 xattrs; [attributes](REPLACEMENT.md#extended-and-named-attributes) |
 | AUTH_SYS | UID/GID and bounded groups, explicit/fixed or v3 observed-owner selection | Server permissions/root squash remain authoritative; observed namespace root is not host `/` |
@@ -60,7 +64,14 @@ capabilities /data
 access /data/report.txt --json
 ls --offline /data
 stat --offline /data/archive.bin
+mounts --json
+handle /data/report.txt --json
 ```
+
+The new link/ownership command flow was also exercised with the Windows binary
+against disposable Ganesha over NFSv3 and NFSv4.1 with krb5p. Broader wire refusal,
+partial-change and lost-reply cases use protocol peers in Windows/Linux checks;
+these results do not certify every server filesystem or name-mapping policy.
 
 `info` returns JSON for the connected peer, configured/best-effort display name,
 transport, NFS version, AUTH_SYS fields or Kerberos principal, and actual TLS

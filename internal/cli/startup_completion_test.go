@@ -76,6 +76,11 @@ func TestStartupCompletionPathsAndPrivateValues(t *testing.T) {
 		{[]string{"scan", "--paths-file=pa"}, cobra.ShellCompDirectiveDefault},
 		{[]string{"scan", "--krb5-config", ""}, cobra.ShellCompDirectiveDefault},
 		{[]string{"scan", "--password", ""}, cobra.ShellCompDirectiveNoFileComp},
+		{[]string{"scan", "--spn", ""}, cobra.ShellCompDirectiveNoFileComp},
+		{[]string{"scan", "--target-spn", "nas="}, cobra.ShellCompDirectiveNoFileComp},
+		{[]string{"scan", "--ccache", "C:\\"}, cobra.ShellCompDirectiveDefault},
+		{[]string{"scan", "--ccache", "KCM:"}, cobra.ShellCompDirectiveNoFileComp},
+		{[]string{"scan", "--kcm-socket", ""}, cobra.ShellCompDirectiveDefault},
 		{[]string{"scan", "--path", ""}, cobra.ShellCompDirectiveNoFileComp},
 		{[]string{"scan", "192.0.2."}, cobra.ShellCompDirectiveNoFileComp},
 	} {

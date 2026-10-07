@@ -21,7 +21,16 @@ func (c *Client) Symlink(ctx context.Context, dir []byte, name, target string) e
 		e.str(target)
 		e.str(name)
 		e = append(e, mode4(0777)...)
-		return c.v4.compound(ctx, fh4(dir), op4(6, e, func(d *decoder) { skipChange4(d); readBitmap4(d) }), op4(10, nil, func(d *decoder) { d.opaque(128) }))
+		created := false
+		err := c.v4.compound(ctx, fh4(dir), op4(6, e, func(d *decoder) {
+			created = true
+			skipChange4(d)
+			readBitmap4(d)
+		}), op4(10, nil, func(d *decoder) { d.opaque(128) }))
+		if err != nil && created {
+			return errors.Join(ErrMutationUncertain, err)
+		}
+		return mutationResult(err)
 	}
 	e.opaque(dir)
 	e.str(name)
@@ -30,12 +39,12 @@ func (c *Client) Symlink(ctx context.Context, dir []byte, name, target string) e
 	e.str(target)
 	d, err := c.call(ctx, 10, e)
 	if err != nil {
-		return err
+		return mutationResult(err)
 	}
 	if d.boolean() {
 		d.opaque(64)
 	}
 	postAttr(d)
 	wcc(d)
-	return d.err
+	return mutationResult(d.err)
 }

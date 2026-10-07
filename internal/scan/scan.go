@@ -33,7 +33,9 @@ type Options struct {
 	Groups   []uint32
 	Security string
 	Kerberos nfs.KerberosConfig
-	DNS      resolve.Config
+	// TargetSPNs maps explicit HOST[:PORT]=SPN identities; alternative to Kerberos.SPN.
+	TargetSPNs []string
+	DNS        resolve.Config
 }
 
 // Target retains service-discovery endpoint and namespace information.
@@ -135,7 +137,8 @@ func (opts Options) Validate() error {
 	default:
 		return fmt.Errorf("invalid NFS version %q", opts.NFSVersion)
 	}
-	return nil
+	_, err := opts.spnMappings()
+	return err
 }
 
 func targetOptions(target Target, opts Options) (Options, error) {
@@ -174,17 +177,22 @@ func RunTargets(ctx context.Context, targets []Target, opts Options, w io.Writer
 	if err := opts.Validate(); err != nil {
 		return err
 	}
+	spns, err := opts.targetSPNs(targets)
+	if err != nil {
+		return err
+	}
 	type preparedTarget struct {
 		target Target
 		opts   Options
 	}
 	var prepared []preparedTarget
 	seen := make(map[Target]bool)
-	for _, target := range targets {
+	for i, target := range targets {
 		perTarget, err := targetOptions(target, opts)
 		if err != nil {
 			return fmt.Errorf("target %q: %w", target.Host, err)
 		}
+		perTarget.Kerberos.SPN = spns[i]
 		port := perTarget.NFSPort
 		if port == 0 {
 			port = 2049
@@ -449,9 +457,13 @@ func printText(w io.Writer, r Result, opts Options) {
 				line += "  filesystem-boundary"
 			}
 			if ex.Traversal != "" {
-				line += "  " + safe(ex.Traversal)
+				line += "  " + safe(nfs.DiscoveryTraversalDescription(ex.Traversal))
 			}
 			fmt.Fprintln(w, line)
+			fmt.Fprintln(w, "    Listing: "+ex.ListingDescription())
+		}
+		if len(h.Exports) == 0 {
+			fmt.Fprintln(w, "  No resources discovered; accessible paths may still exist.")
 		}
 		if !h.DiscoveryComplete {
 			fmt.Fprintln(w, "  Partial discovery")
@@ -473,6 +485,8 @@ func printText(w io.Writer, r Result, opts Options) {
 
 	fmt.Fprintf(w, "summary: %d hosts  %d NFS  %d unreachable  |  %d accessible  %d denied  %d vulnerable\n",
 		len(r.Hosts), nfsHosts, unreachable, accessible, restricted, vulnerable)
+	fmt.Fprintln(w, "Sources: mountd = advertised export; namespace = observed NFSv4 path; known_path = supplied path.")
+	fmt.Fprintln(w, "list/traverse: yes/no = server access decision; ? = unknown. Listing records READDIR evidence only.")
 }
 
 func safe(s string) string {

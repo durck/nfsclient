@@ -6,6 +6,14 @@ User-visible changes are grouped by version and type.
 
 ### Added
 
+- Shell `ln`, `ln -s`, `readlink`, `chown` and `chgrp`, with pinned identities,
+  explicit symlink rules, ownership readback and matching help/completion.
+- Bounded `mounts` diagnostics and opaque `handle` hex/JSON inspection;
+  connection reports include requested host, connected peers and identity.
+- Discovery reports distinguish completed empty listings from unenumerated or
+  partial paths, with additive `listed_entries`/`listing_complete` JSON evidence.
+- Explicit single-target and per-target Kerberos SPNs in `scan`, plus ccache
+  selection, shared credential validation and early mapping checks.
 - `scan --dns-domain` discovers RFC 6641 NFSv4 domain roots, including their
   advertised ports and namespace paths. Invocation-scoped DNS also covers
   connection probes and NFS connections; domain-only invocation is supported.
@@ -15,6 +23,11 @@ User-visible changes are grouped by version and type.
 
 ### Fixed
 
+- Protected scans now receive the required service principal. Password-only
+  authentication passes shared validation; conflicting credentials and ignored
+  passwords under AUTH_SYS/SSPI are rejected.
+- Port-qualified scan SPNs cannot approve an unknown rpcbind-discovered port;
+  use host-only mappings or an explicit NFS port for legacy negotiation.
 - Preserve SRV ports and reject unavailable/invalid endpoints; restrict domain
   roots to NFSv4, respect DNS deadlines and expose endpoints in scan reports.
 - Make the lease-renewal crash test use an observable recoverable RPC boundary,

@@ -246,6 +246,12 @@ func (s *Shell) Execute(ctx context.Context, line string) (bool, error) {
 	}
 	sess := s.Session
 	switch a[0] {
+	case "ln", "readlink", "chown", "chgrp":
+		return false, s.runNamespaceCommand(ctx, a[0], a[1:])
+	case "mounts":
+		return false, s.mounts(ctx, a[1:])
+	case "handle":
+		return false, s.handle(ctx, a[1:])
 	case "access":
 		return false, s.access(ctx, a[1:])
 	case "info":

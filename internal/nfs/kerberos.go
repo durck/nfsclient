@@ -49,6 +49,12 @@ func (c *Client) Identity() string {
 	return fmt.Sprintf("UID %d  /  GID %d  (AUTH_SYS)", c.Auth.UID, c.Auth.GID)
 }
 
+// ValidateSecurityConfig checks the same explicit identity requirements used by
+// Connect, without accessing credential files or contacting a server.
+func ValidateSecurityConfig(cfg Config) error {
+	return validateSecurity(&cfg)
+}
+
 func validateSecurity(cfg *Config) error {
 	if cfg.Security == "" {
 		cfg.Security = "sys"
@@ -68,7 +74,7 @@ func validateSecurity(cfg *Config) error {
 	}
 	switch cfg.Security {
 	case "sys":
-		if k.ConfigFile != "" || k.Keytab != "" || k.CCache != "" || k.Principal != "" || k.SPN != "" || k.KCMSocket != "" || k.ASAlias != "" || k.EnterpriseUPN != "" || k.ASStartRealm != "" || len(k.ASReferralRealms) > 0 || k.ASHelper != "" || k.FASTArmor != "" || k.RequireFAST || k.PKINIT.Selected() {
+		if k.ConfigFile != "" || k.Keytab != "" || k.CCache != "" || k.Password != "" || k.Principal != "" || k.SPN != "" || k.KCMSocket != "" || k.ASAlias != "" || k.EnterpriseUPN != "" || k.ASStartRealm != "" || len(k.ASReferralRealms) > 0 || k.ASHelper != "" || k.FASTArmor != "" || k.RequireFAST || k.PKINIT.Selected() {
 			return errors.New("kerberos options require --sec krb5, krb5i or krb5p")
 		}
 	case "krb5", "krb5i", "krb5p":
@@ -77,11 +83,17 @@ func validateSecurity(cfg *Config) error {
 		default:
 			return errors.New("kerberos requires NFSv2, NFSv3 or NFSv4; no authentication downgrade is allowed")
 		}
-		if k.ConfigFile == "" || (k.Keytab == "" && k.CCache == "" && !k.PKINIT.Selected()) || k.SPN == "" {
-			return errors.New("kerberos requires --krb5-config, --principal, --spn and explicit keytab, ccache or PKINIT identity")
+		if k.ConfigFile == "" || (k.Keytab == "" && k.CCache == "" && k.Password == "" && !k.PKINIT.Selected()) || k.SPN == "" {
+			return errors.New("kerberos requires --krb5-config, --principal, --spn and explicit keytab, ccache, password or PKINIT identity")
 		}
-		if k.Keytab != "" && k.CCache != "" {
-			return errors.New("select exactly one of --keytab or --ccache")
+		credentials := 0
+		for _, selected := range []bool{k.Keytab != "", k.CCache != "", k.Password != "", k.PKINIT.Selected()} {
+			if selected {
+				credentials++
+			}
+		}
+		if credentials != 1 {
+			return errors.New("select exactly one of --keytab, --ccache, --password or PKINIT")
 		}
 		if err := bgss.ValidateCCacheSelection(k.CCache, k.KCMSocket); err != nil {
 			return err

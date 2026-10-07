@@ -245,7 +245,8 @@ Verification scope is documented in [development](DEVELOPMENT.md).
 
 The completed F01-F13 scope remains unchanged. The user approved the following
 bounded additions after reviewing primary NFS RFCs. Hardware and a new external
-stand remain excluded; WebNFS, DNS discovery and new pNFS extensions are deferred.
+stand remain excluded; WebNFS and new pNFS extensions are deferred. DNS domain-root
+discovery was subsequently implemented and is documented in README.
 
 Design decision: share typed access/capability observations in `internal/nfs`,
 resolve paths with pinned identities in `internal/session`, and present commands
@@ -281,3 +282,36 @@ root handles, stale discovery hints and SETATTR error payloads. Windows/Linux
 self-checks (vet, race, builds and packaged release scenarios), focused final
 regressions and staticcheck v0.7.0 passed. New optional extensions retain the
 software-peer evidence limitation described above.
+
+## Everyday client improvements (2026-10-07)
+
+Approved after comparing nfsshell with the existing client. This iteration
+finishes everyday workflows rather than adding another protocol family.
+
+- [x] U01: Repair protected scan with explicit single-endpoint/per-target SPNs,
+  shared credential validation and cache/password selection. Reject ambiguous,
+  conflicting, missing and unused mappings before NFS probes; never infer SPNs.
+- [x] U02: Expose `ln`, `ln -s` and `readlink` using existing protocol operations.
+  Exact destinations, no replacement, pinned identities and explicit symlink
+  semantics; report uncertain mutations without blind replay.
+- [x] U03: Add `chown` / `chgrp`, numeric v2/v3 and string v4 ownership, exact
+  same-handle readback, refusal/partial-change/lost-reply handling.
+- [x] U04: Explain discovery provenance, permission uncertainty and traversal
+  limits. Add backward-compatible READDIR count/completion evidence so unknown
+  or partial contents cannot be mistaken for a confirmed empty directory.
+- [x] U05: Add bounded historical MOUNT records, opaque handle hex/JSON diagnostic
+  export and requested/observed connection context. Preserve existing separation
+  of server advertisements, client support and access observations.
+- [x] U06: Integrate command help and context-sensitive completion, update the
+  existing user guides, and independently cross-review all implementation areas.
+
+Windows/Linux self-checks passed: vet, race, CGO-free builds and packaged CLI
+scenarios; Windows Python checks also passed. Staticcheck and reachable-code
+vulnerability checks passed. A disposable MIT KDC/Ganesha verified 24 protected
+scan successes (v3/v4.0/v4.1/v4.2, keytab/cache/password, both SPN forms) and wrong
+SPN/password refusal. The Windows binary completed link/ownership workflows
+against Ganesha on v3/v4.1. Wire peers cover malformed replies and uncertain
+mutations; native NAS/hardware claims remain limited by COMPATIBILITY.md.
+
+`mknod` and arbitrary filehandle import remain explicitly deferred. Diagnostic
+handle output is not a recovery or import format. No new external stand is needed.

@@ -58,7 +58,11 @@ type DiscoveredExport struct {
 	AdvertisedSecurity []string `json:"advertised_security,omitempty"`
 	Referral           bool     `json:"referral,omitempty"`
 	Traversal          string   `json:"traversal,omitempty"`
-	Error              string   `json:"error,omitempty"`
+	// Listing evidence is distinct from ACCESS permission bits. Nil means no
+	// READDIR was attempted; a zero count proves emptiness only at EOF.
+	ListedEntries   *int   `json:"listed_entries,omitempty"`
+	ListingComplete *bool  `json:"listing_complete,omitempty"`
+	Error           string `json:"error,omitempty"`
 }
 
 type DiscoveryReport struct {
@@ -235,6 +239,8 @@ func (c *Client) Discover(parent context.Context, o DiscoveryOptions) (Discovery
 		}
 		children, used, err := c.v4.discoveryChildren(ctx, item.node.Handle, remaining)
 		remaining -= used
+		complete := err == nil
+		e.ListedEntries, e.ListingComplete = &used, &complete
 		parentPath := e.Path
 		if err != nil {
 			e.Traversal = DiscoveryErrorStatus(err)

@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/chzyer/readline"
@@ -143,11 +142,7 @@ func NewCommand(in io.Reader, out, errOut io.Writer) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		// --domain qualifies a bare --principal with a realm.
-		if krbDomain != "" && cfg.Kerberos.Principal != "" && !strings.Contains(cfg.Kerberos.Principal, "@") {
-			cfg.Kerberos.Principal = cfg.Kerberos.Principal + "@" + strings.ToUpper(krbDomain)
-		}
-		cfg.Kerberos.Password = krbPassword
+		cfg.Kerberos = qualifyKerberos(cfg.Kerberos, krbDomain, krbPassword)
 		if batch && len(lines) > 0 {
 			return fmt.Errorf("--batch and --command cannot be combined")
 		}

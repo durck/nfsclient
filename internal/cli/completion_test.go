@@ -36,6 +36,7 @@ func TestCompletionHelpFlagsAndEnumsWithoutSession(t *testing.T) {
 		{"gettree --merge=f", "alse "}, {"access --json=t", "rue "},
 		{"exports --rec", "ursive "},
 		{"exports --paths-", "file "},
+		{"ln -", "s "}, {"handle file --j", "son "}, {"mounts --j", "son "},
 	} {
 		t.Run(tc.input, func(t *testing.T) {
 			got := completionResults(c, tc.input)
@@ -54,6 +55,7 @@ func TestCompletionHelpFlagsAndEnumsWithoutSession(t *testing.T) {
 		"reget --retries 2 --h", "reget --retries 2 --ret", "reget --retries 2 --fail",
 		"reget --failover a,b,c --ref", "lock --wait 1s --wait", "reconnect --discard-locks --reclaim",
 		"migrate --arm-failover --status", "getpnfs remote local --layout file --layout",
+		"ln file -s", "ln -s -s", "ln -s literal-target another -s", "handle file extra --j",
 	} {
 		if got := completionResults(c, input); len(got) != 0 {
 			t.Errorf("invalid or non-enumerated argument %q suggested %q", input, got)
@@ -156,6 +158,8 @@ func TestCompletionRemoteRolesAndDirectories(t *testing.T) {
 		"copyfrom server export source re", "offload-reconcile local operation re", "chmod 600 re",
 		"namedattrs re", "getnamedattr re", "setacl re", "getacl re", "setlabel re", "uid-scan re",
 		"rm re", "rmdir re", "writeadb re", "ls --offline re", "stat -- re", "access --json=true re",
+		"ln re", "ln source re", "ln -s ../missing re", "ln -- re", "readlink re",
+		"chown 123:456 re", "chgrp group@example.test re", "handle --json re", "handle -- re",
 	} {
 		if got := completionResults(c, input); !slices.Contains(got, `mote\ marker `) {
 			t.Errorf("remote path %q => %q", input, got)
@@ -166,6 +170,11 @@ func TestCompletionRemoteRolesAndDirectories(t *testing.T) {
 	}
 	if got := completionResults(c, "copyfrom server export re"); len(got) != 0 {
 		t.Fatalf("source on another server was completed from current export: %q", got)
+	}
+	for _, input := range []string{"ln -s re", "ln -s -- re", "chown re", "chgrp re"} {
+		if got := completionResults(c, input); len(got) != 0 {
+			t.Errorf("literal target or identity %q completed as a path: %q", input, got)
+		}
 	}
 }
 

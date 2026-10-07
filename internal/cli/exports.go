@@ -104,6 +104,10 @@ func (s *Shell) discoverExports(ctx context.Context, args []string) error {
 	if asJSON {
 		return json.NewEncoder(s.Out).Encode(r)
 	}
+	return s.printDiscovery(r)
+}
+
+func (s *Shell) printDiscovery(r nfs.DiscoveryReport) error {
 	section(s.Out, "RESOURCES / NFS "+r.Version, s.Color)
 	fmt.Fprintln(s.Out, "  Identity: "+label(r.Identity))
 	permission := func(b *bool) string {
@@ -127,12 +131,18 @@ func (s *Shell) discoverExports(ctx context.Context, args []string) error {
 			fmt.Fprintln(s.Out, "    Advertised client: "+label(rule))
 		}
 		if e.Traversal != "" {
-			fmt.Fprintln(s.Out, "    Traversal: "+e.Traversal)
+			fmt.Fprintln(s.Out, "    Traversal: "+label(nfs.DiscoveryTraversalDescription(e.Traversal)))
 		}
+		fmt.Fprintln(s.Out, "    Listing: "+e.ListingDescription())
 		if e.Error != "" {
 			fmt.Fprintln(s.Out, "    "+label(e.Error))
 		}
 	}
+	if len(r.Entries) == 0 {
+		fmt.Fprintln(s.Out, "  No resources discovered; this does not prove that no accessible paths exist.")
+	}
+	fmt.Fprintln(s.Out, "  Sources: mountd = advertised export; namespace = observed NFSv4 path; known_path = supplied path.")
+	fmt.Fprintln(s.Out, "  list/traverse: yes/no = server access decision; ? = unknown. Listing is separate READDIR evidence.")
 	if r.Complete {
 		fmt.Fprintln(s.Out, "  Discovery complete for the visible namespace / advertised exports.")
 	} else {
@@ -141,6 +151,6 @@ func (s *Shell) discoverExports(ctx context.Context, args []string) error {
 	for _, issue := range r.Issues {
 		fmt.Fprintln(s.Out, "    "+label(issue))
 	}
-	_, err = fmt.Fprintln(s.Out, "  Hidden paths may still be accessible by name. Access reflects the current identity.")
+	_, err := fmt.Fprintln(s.Out, "  Hidden paths may still be accessible by name. Access reflects the current identity.")
 	return err
 }

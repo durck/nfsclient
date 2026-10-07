@@ -65,11 +65,16 @@ func completionMetadata(command string) completionSpec {
 	case "ls", "stat":
 		spec.args = []completionArgument{r}
 		flags(0, "--offline")
-	case "access", "capabilities":
+	case "access", "capabilities", "handle":
 		spec.args = []completionArgument{r}
 		flags(0, "--json")
-	case "info":
+	case "info", "mounts":
 		flags(0, "--json")
+	case "ln":
+		spec.args = []completionArgument{r, r}
+		flags(0, "-s")
+	case "readlink":
+		spec.args = []completionArgument{r}
 	case "acl", "label", "setlabel", "xattrs", "getxattr", "removexattr", "cat", "hex", "mkdir", "rm", "rmdir", "namedattrs", "uid-scan", "allocate", "deallocate", "writesame":
 		spec.args = []completionArgument{r}
 	case "get", "getplus", "getrange", "reget", "gettree", "getpnfs", "getacl", "setacl":
@@ -86,7 +91,7 @@ func completionMetadata(command string) completionSpec {
 		// this session. Never query the current server for source paths.
 		spec.args = []completionArgument{none, none, none, r}
 		flags(1, "--source-spn", "--copy-user", "--source-tls-name")
-	case "chmod":
+	case "chmod", "chown", "chgrp":
 		spec.args = []completionArgument{none, r}
 	case "getnamedattr":
 		spec.args = []completionArgument{r, none, l}
@@ -301,7 +306,7 @@ func (c *completer) arguments(command string, words []string) []string {
 			continue
 		}
 		if options && word == "--" {
-			if !slices.Contains([]string{"ls", "stat", "access", "capabilities", "exports", "gettree", "puttree"}, command) {
+			if !slices.Contains([]string{"ls", "stat", "access", "capabilities", "handle", "ln", "exports", "gettree", "puttree"}, command) {
 				return nil
 			}
 			options = false
@@ -362,6 +367,11 @@ func (c *completer) arguments(command string, words []string) []string {
 	var result []string
 	if position < len(spec.args) {
 		argument = spec.args[position]
+		// A symbolic-link target is literal text relative to its new parent,
+		// which need not exist; CWD-based path suggestions would be misleading.
+		if command == "ln" && used["-s"] > 0 && position == 0 {
+			argument = completionArgument{}
+		}
 		if command == "advise" && position == 3 {
 			if i := strings.LastIndexByte(prefix, ','); i >= 0 {
 				return prefixedValues(prefix[:i+1], argument.values)
@@ -411,7 +421,7 @@ func completionFlagAllowed(command, flag string, position int) bool {
 		return position == 0
 	}
 	switch command {
-	case "reget", "lock", "reconnect", "migrate", "info", "exports":
+	case "reget", "lock", "reconnect", "migrate", "info", "mounts", "exports", "ln":
 		return position == 0
 	case "getpnfs", "putpnfs":
 		return position >= 2
@@ -421,7 +431,7 @@ func completionFlagAllowed(command, flag string, position int) bool {
 		return position >= 9
 	case "writeadb":
 		return position >= 5
-	case "ls", "stat", "access", "capabilities":
+	case "ls", "stat", "access", "capabilities", "handle":
 		return position <= 1
 	case "gettree", "puttree":
 		return position <= 2

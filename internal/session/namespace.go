@@ -16,9 +16,13 @@ func (s *Session) namespaceIdentity() (func(), error) {
 	if len(s.Client.Locks()) != 0 {
 		return nil, nfs.ErrLocksHeld
 	}
-	auto, auth := s.AutoUID, s.Client.Auth
-	s.AutoUID = false
-	return func() { s.AutoUID, s.Client.Auth = auto, auth }, nil
+	return s.pinNamespaceIdentity(), nil
+}
+
+func (s *Session) pinNamespaceIdentity() func() {
+	auto, scan, auth := s.AutoUID, s.AutoUIDScan, s.Client.Auth
+	s.AutoUID, s.AutoUIDScan = false, false
+	return func() { s.AutoUID, s.AutoUIDScan, s.Client.Auth = auto, scan, auth }
 }
 
 func (s *Session) namespaceParent(ctx context.Context, name string) (nfs.Node, string, string, error) {

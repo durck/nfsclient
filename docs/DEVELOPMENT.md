@@ -114,6 +114,13 @@ subtracting a legacy WRITE-payload allowance again can reject legal metadata.
 Operation-specific error results still carry XDR bodies: SETATTR returns attrsset
 on failure and LOCKT DENIED returns a conflict owner/range. Consume and validate
 these before checking trailing bytes; a valid refusal must not poison the session.
+SETATTR ownership changes also require same-handle readback: NFSv3 may apply a
+subset before returning an error, and NFSv4 failure attrsset can explicitly
+acknowledge partial changes. CREATE followed by GETFH can similarly fail after
+the namespace mutation has already succeeded. Preserve uncertainty without
+replaying the mutation or reporting an ordinary unchanged-object refusal.
+Endpoint-specific identity approvals must bind a known port. A default candidate
+such as 2049 must not stand in for a port that legacy rpcbind has yet to discover.
 
 Always read/write documentation with explicit UTF-8 and inspect visible text:
 valid Unicode can already contain mojibake. Generated Unix scripts also need

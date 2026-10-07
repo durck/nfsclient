@@ -7,6 +7,7 @@ default software checks do not certify arbitrary vendors.
 
 ## Contents
 
+- [Explicit ownership changes](#explicit-ownership-changes)
 - [Native NFSv4 ACL management](#native-nfsv4-acl-management)
 - [Publication and ACL policy](#publication-and-acl-policy)
 - [Extended NFSv4 policy](#extended-nfsv4-policy)
@@ -14,6 +15,28 @@ default software checks do not certify arbitrary vendors.
 - [NFSv2/v3 ACL inspection, export and import](#nfsv3-acl-inspection)
 - [Explicit NFSv3 replacement](#explicit-nfsv3-replacement)
 - [Explicit NFSv2 replacement](#explicit-nfsv2-replacement)
+
+## Explicit ownership changes
+
+`chown OWNER[:GROUP] PATH` and `chgrp GROUP PATH` change only the requested
+owner/group attributes, then GETATTR the same filehandle. NFSv2/v3 accept decimal
+uint32 IDs; NFSv2 reserves 4294967295 for unchanged values and rejects it as an
+explicit ID. NFSv4 accepts exact nonempty UTF-8 owner/group strings, up to 1024
+bytes each, without NUL. It does not translate local Windows names or infer
+file ownership from the Kerberos principal. The server controls authorization
+and name mapping; readback normalization is reported as a mismatch.
+
+The final path cannot be a symbolic link or have a trailing slash, except for
+`/`. Intermediate symlinks follow the usual session path rules. Directory
+ownership may be changed.
+The selected identity stays fixed and held locks must first be released.
+Changing ownership may cause server-side mode/ACL effects; this operation does
+not promise to preserve those or restore them automatically.
+
+There is no automatic mutation replay. A lost reply, malformed acknowledgement,
+partial SETATTR or readback failure reports an uncertain change. Inspect the
+object before retrying. NFSv3 SETATTR can apply part of a request even when it
+returns an error; the client retains that error and the uncertainty warning.
 
 ## Native NFSv4 ACL management
 

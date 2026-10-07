@@ -111,9 +111,31 @@ cat notes.txt
 get notes.txt local-notes.txt
 put "local report.txt" "new report.txt"
 chmod 640 "new report.txt"
+ln notes.txt notes-copy.txt
+ln -s notes.txt latest.txt
+readlink latest.txt
+handle notes.txt --json
 id
 exit
 ```
+
+`ln` creates an exact new name without replacing existing entries (NFSv3/v4).
+Hard-link sources must be regular files; `ln -s` stores its target literally,
+including missing targets. Use `ln [-s] -- SOURCE DESTINATION` for names starting
+with `-`. `readlink` displays the stored target with terminal controls escaped.
+`chown OWNER[:GROUP] PATH` and `chgrp GROUP PATH` change ownership and verify it:
+v2/v3 require numeric IDs; v4 sends exact server-recognized owner/group strings.
+They reject final symlinks and trailing slashes except for `/`. Mutations keep
+the current identity, require held locks to be released, and do not automatically retry an
+uncertain result. See [ownership semantics](docs/REPLACEMENT.md#explicit-ownership-changes).
+
+`info` includes the requested host, actual NFS/MOUNT peers and identity.
+`mounts [--json]` reads legacy MOUNT records with a five-second/4096-entry bound;
+records may be stale or incomplete and do not prove active clients. NFSv4 returns
+unavailable without contacting mountd. `handle [PATH] [--json]` exports the
+opaque handle as hex with connection context; it does not follow the final
+symlink or accept trailing slashes except for `/`. This is diagnostic output,
+not a restorable session or an import format. Handles can become stale.
 
 The interactive prompt shows the current server name and connected IP, followed
 by the remote directory: `nfs nas.example.test (192.0.2.10) /documents >`.
@@ -212,6 +234,12 @@ produce partial results. Referrals are reported without following another server
 Symlinks are not followed. NFSv2 lacks ACCESS, so permissions remain unknown.
 JSON retains `source` and adds merged `sources`, security/referral markers and
 advertised SECINFO modes where available; no authentication fallback is attempted.
+`listed_entries` and `listing_complete` add actual NFSv4 READDIR evidence:
+zero entries means an empty directory only when listing completed. Absent fields
+mean no enumeration; a partial zero-entry result does not prove emptiness.
+These counts include files, even though discovery primarily presents directories.
+Legacy MOUNT/access checks do not enumerate directory contents. Text reports
+explain path sources, unknown permissions and reasons for partial traversal.
 `fsid` changes identify filesystem boundaries, not necessarily export boundaries.
 The NFSv4 result does not merge MOUNT paths or client rules: those may describe a
 different namespace. Select NFSv3 separately to inspect its advertised exports.
@@ -345,8 +373,29 @@ For each reachable host the scan reports:
   Ordinary NFSv4 pseudo-root access is not classified as a vulnerability.
 
 Output is a human-readable table (default) or structured JSON (`--output json`).
-Scan supports the same auth flags as the main command: `--uid`, `--gid`, `--groups`,
-`--sec`, `--principal`, `--keytab`, `--password`, `--domain` and `--krb5-config`.
+Scan supports `--uid`, `--gid`, `--groups`, `--sec`, `--principal`, `--keytab`,
+`--ccache`, `--kcm-socket`, `--password`, `--domain` and `--krb5-config`.
+Kerberos also requires an explicit service identity. Use `--spn nfs/HOST` for
+one distinct endpoint, or repeat `--target-spn HOST[:PORT]=nfs/HOST` for several.
+Do not combine these forms. Every target must resolve to one unambiguous service
+identity; redundant identical mappings are allowed, while unused mappings are
+rejected before target probes. A host-only mapping is accepted only when that
+host has one endpoint; multiple ports require port
+qualification (IPv6: `[ADDRESS]:PORT`). DNS names compare case-insensitively
+without the final dot. DNS resolution never supplies a guessed SPN.
+If v2/v3 or `auto` may discover the NFS port through rpcbind, use a host-only
+mapping or pin `--nfs-port`; a port-qualified SPN cannot approve an unknown port.
+Explicit NFSv4 can use its default port 2049; DNS domain-root targets use their
+advertised SRV port (or the explicit `--nfs-port` override).
+Choose exactly one credential source: keytab, ccache or password. Scan and
+interactive connection share credential validation; scan does not expose all
+advanced authentication profiles of the main command.
+
+```sh
+nfsclient scan nas.example.test --sec krb5p --principal alice@EXAMPLE.TEST \
+  --krb5-config krb5.conf --ccache alice.ccache --spn nfs/nas.example.test \
+  --no-squash-check --no-escape-check
+```
 `--concurrency` (default 20) controls simultaneous connections; `--timeout`
 (default 5 s) limits individual connection/probe attempts. `--recursive`,
 `--depth`, `--max-entries` and `--discovery-timeout` use the same discovery
@@ -383,7 +432,7 @@ protocol versions, credentials and often confirmed locks.
 | `replace` | [NFSv2 ACL replacement](docs/REPLACEMENT.md#explicit-nfsv2-replacement), [NFSv3 ACL replacement](docs/REPLACEMENT.md#explicit-nfsv3-replacement) or [NFSv4 replacement attributes](docs/REPLACEMENT.md#extended-and-named-attributes) |
 | `acl`, `getacl`, `setacl` | [NFSv4 ordered ACL management](docs/REPLACEMENT.md#native-nfsv4-acl-management), [NFSv2/v3 ACL inspection/export/import](docs/REPLACEMENT.md#nfsv3-acl-inspection) |
 | `label`, `setlabel`, `xattrs`, `getxattr`, `setxattr`, `removexattr` | Bounded metadata operations; authorization remains server policy |
-| `rm`, `rmdir`, `mv`, `mkdir`, `chmod` | Explicit namespace/metadata mutations; no recursive deletion or automatic mutation replay |
+| `rm`, `rmdir`, `mv`, `mkdir`, `chmod`, `ln`, `chown`, `chgrp` | Explicit namespace/metadata mutations; no recursive deletion or automatic mutation replay |
 
 ## Self-check and project artifacts
 
