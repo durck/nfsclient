@@ -84,9 +84,13 @@ def main():
         if process.returncode:
             raise SystemExit(process.returncode)
 
+    # Windows journal stress tests perform thousands of durable flushes. Keep
+    # packages sequential so they do not starve subprocess crash-boundary tests
+    # of disk service; race instrumentation and intra-package concurrency remain.
+    race_parallelism = ["-p=1"] if target == "windows" else []
     for phase, arguments in (
         ("vet", ["vet", "./..."]),
-        ("race", ["test", "-race", "-json", "-count=1", "-timeout=10m", "./..."]),
+        ("race", ["test", "-race", "-json", "-count=1", "-timeout=10m", *race_parallelism, "./..."]),
     ):
         command, run_env = go_command(arguments)
         run(phase, command, run_env, go_json=phase == "race")

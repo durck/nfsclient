@@ -16,6 +16,10 @@ python -B tests/selfcheck.py --linux-container
 The native run performs Go vet/race, Python evidence-reader checks, a CGO-free
 amd64 build/help check and affected release-process scenarios. Race tests need
 CGO enabled and a supported C compiler; scope CGO=0 to release builds only.
+On Windows, race-test packages run sequentially (`-p=1`): journal stress tests
+perform thousands of durable flushes and can otherwise starve another package's
+subprocess crash-boundary watchdog. All tests and race instrumentation remain
+enabled; concurrency within each package is unchanged.
 Linux Go checks use temporary `golang:1.26.8` Docker containers with `--rm`,
 read-only source/module mounts and a reusable build cache. Inherited NFS_/KRB5_
 fixture selectors are removed. No real NAS/domain/hardware fixture is enabled.
