@@ -132,6 +132,25 @@ replacement needs an ACL-capable fixture. `NFS_VIEWER_TEST_IDLE=1` optionally ad
 wait per v4 case to exercise the six-second lease. The normal self-check removes
 fixture selectors, so use the direct `go test` command for this opt-in smoke run.
 
+## Recording the README demo
+
+Build the Windows client using the root README, then start a **fresh** disposable
+Ganesha fixture as above and wait for its grace period. The optional recorder
+requires Python with `pywinpty` (verified with 2.0.15) and uses a native Windows
+PTY with a UTF-8 console. It seeds example files, types into the interactive
+client, captures unchanged terminal output with observed timestamps, and checks
+the downloaded bytes. It refuses an existing output `files/` directory.
+
+```powershell
+python -B tests/record_demo.py --binary bin/nfsclient-windows-amd64.exe --port 12049 --output bin/verification/readme-recording
+agg --font-family Consolas --font-size 16 --theme asciinema --speed 1 --idle-time-limit 60 --last-frame-duration 2 bin/verification/readme-recording/demo.cast bin/verification/readme-recording/demo.gif
+```
+
+Use [agg](https://github.com/asciinema/agg) 1.9.0 to render the captured stream.
+Inspect the animation before copying both files to `docs/assets/`. Keep recorder
+evidence in ignored `bin/verification/`, and stop the disposable server afterward.
+On every container restart, check the mapped port again if Docker assigned it.
+
 ## Other fixture prerequisites
 
 Check each Dockerfile's base image before building. Keep server-specific repairs

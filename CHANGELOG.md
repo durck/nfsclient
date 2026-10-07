@@ -7,6 +7,8 @@ until a tagged release is published.
 
 ### Added
 
+- Current server hostname and connected IP in the interactive prompt, with
+  bounded reverse DNS lookup for IP targets and refresh after reconnect.
 - Typographic nfsclient banner for the GitHub README.
 - Interactive Windows/Linux NFS client with direct RPC, NFSv2/v3/v4 profiles,
   safe file transfers, previews, completion and optional command history.
@@ -50,6 +52,8 @@ until a tagged release is published.
 
 ### Changed
 
+- Replace the captioned batch demo with a native Windows interactive terminal
+  recording, including real prompts, colors, navigation and Tab completion.
 - Consolidate public documentation by operation and state native interoperability
   limits explicitly in the compatibility guide.
 - Remove unused internal helpers and standardize error messages; retain local

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -347,8 +348,28 @@ func (s *Shell) printSession(w io.Writer, color bool) error {
 	return err
 }
 
-func (s *Shell) prompt() string {
-	return paint(s.Color, muted, "nfs") + " " + paint(s.Color, warm, label(s.Session.CWD)) + " " + paint(s.Color, green, "> ")
+func (s *Shell) prompt(ctx context.Context) string {
+	if s.promptServer == "" || s.promptClient != s.Session.Client || s.promptHost != s.Session.Host {
+		lookup, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
+		name, ip := s.Session.Client.ServerInfo(lookup)
+		cancel()
+		server := name
+		if server == "" {
+			server = ip
+		}
+		if server == "" {
+			server = s.Session.Host
+		}
+		if server == "" {
+			server = "unknown"
+		}
+		s.promptServer = label(server)
+		if name != "" && ip != "" && name != ip {
+			s.promptServer += " (" + label(ip) + ")"
+		}
+		s.promptClient, s.promptHost = s.Session.Client, s.Session.Host
+	}
+	return paint(s.Color, muted, "nfs") + " " + paint(s.Color, cyan, s.promptServer) + " " + paint(s.Color, warm, label(s.Session.CWD)) + " " + paint(s.Color, green, "> ")
 }
 
 func (s *Shell) printLegend() error {

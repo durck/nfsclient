@@ -17,12 +17,14 @@ by topic. See [contributing](CONTRIBUTING.md) and the [security policy](SECURITY
 Licensed under [MIT](LICENSE). Adapted GSS/Kerberos components retain their
 original notices; binary distributions also include third-party licenses.
 
-![Terminal demo: mkdir, put, ls, cat, get over NFSv4.1](docs/assets/demo.gif)
+![Interactive Windows terminal: navigation, Tab completion, file preview, upload and download over NFSv4.1](docs/assets/demo.gif)
 
 [Download the asciinema recording](docs/assets/demo.cast) for a full-resolution
-replay (`asciinema play docs/assets/demo.cast`). A real local NFSv4.1 upload,
-listing, preview and download against a disposable Ganesha fixture. Downloaded
-bytes were verified.
+replay (`asciinema play docs/assets/demo.cast`). Recorded from the real Windows
+interactive client against a disposable local NFS-Ganesha export. Commands are
+typed automatically, including Tab completion; terminal output and timing are
+captured directly. Downloaded bytes were verified. See
+[recording instructions](tests/README.md#recording-the-readme-demo).
 
 ## Install from a release
 
@@ -94,6 +96,12 @@ chmod 640 "new report.txt"
 id
 exit
 ```
+
+The interactive prompt shows the current server name and connected IP, followed
+by the remote directory: `nfs nas.example.test (192.0.2.10) /documents >`.
+For an IP target, a best-effort reverse DNS lookup uses the selected DNS settings
+and a 250 ms deadline. If no name is available, only the IP is shown. The display
+is cached per connection and refreshed after reconnect or server changes.
 
 Remote paths use `/`; relative paths and symlinks are interpreted within the
 selected root. Commands do not invoke a local shell or expand wildcards and

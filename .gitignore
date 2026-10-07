@@ -1,4 +1,8 @@
 /bin/
+/nfsclient
+/nfsclient.exe
+/checks-Linux/
+/checks-Windows/
 *.test
 *.test.exe
 coverage.out

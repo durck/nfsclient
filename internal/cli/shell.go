@@ -148,6 +148,9 @@ type Shell struct {
 	ProgressMode    string
 	Ask             func(string) (string, error)
 	AskChoice       func(string, string) (string, error)
+	promptClient    *nfs.Client
+	promptHost      string
+	promptServer    string
 }
 
 func (s *Shell) local(p string) string {
@@ -1425,7 +1428,7 @@ func (s *Shell) runInteractive(parent context.Context, history string, configure
 	previousAsk := s.Ask
 	s.Ask = func(prompt string) (string, error) {
 		rl.SetPrompt(prompt)
-		defer rl.SetPrompt(s.prompt())
+		defer func() { rl.SetPrompt(s.prompt(ctx)) }()
 		return rl.Readline()
 	}
 	defer func() { s.Ask = previousAsk }()
@@ -1437,7 +1440,7 @@ func (s *Shell) runInteractive(parent context.Context, history string, configure
 	}
 	defer func() { s.AskChoice = previousChoice }()
 	for {
-		rl.SetPrompt(s.prompt())
+		rl.SetPrompt(s.prompt(ctx))
 		line, err := rl.Readline()
 		if _, exiting := interrupts.status(); exiting {
 			return nil
