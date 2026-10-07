@@ -26,26 +26,21 @@ typed automatically, including Tab completion; terminal output and timing are
 captured directly. Downloaded bytes were verified. See
 [recording instructions](tests/README.md#recording-the-readme-demo).
 
-## Download a CI build
+## Install
 
-There are no published releases yet. Download a development build from
-[GitHub Actions → CI](https://github.com/durck/nfsclient/actions/workflows/ci.yml),
-or [build from source](#build-and-start).
+Download [v0.1.0](https://github.com/durck/nfsclient/releases/tag/v0.1.0)
+for your platform, or [build from source](#build-and-start).
 
-Open a successful run on `main`, then select the archive under **Artifacts**:
-
-| Platform | Artifact | Executable inside |
+| Platform | Download | Executable inside |
 | --- | --- | --- |
-| Windows x64 | `nfsclient-Windows-amd64` | `nfsclient-windows-amd64.exe` |
-| Linux x64 | `nfsclient-Linux-amd64` | `nfsclient-linux-amd64` |
-
-Builds are identified by the run's commit and retained for 14 days. The
-`checks-*` artifacts contain verification logs, not executables. If no build
-artifact is available, build from source below.
+| Windows x64 | [ZIP](https://github.com/durck/nfsclient/releases/download/v0.1.0/nfsclient-v0.1.0-windows-amd64.zip) | `nfsclient-windows-amd64.exe` |
+| Linux x64 | [tar.gz](https://github.com/durck/nfsclient/releases/download/v0.1.0/nfsclient-v0.1.0-linux-amd64.tar.gz) | `nfsclient-linux-amd64` |
 
 Extract the archive and keep the accompanying `LICENSE`,
 `THIRD-PARTY-LICENSES.txt` and `SHA256SUMS`. Compare the executable's SHA-256
-digest with its `SHA256SUMS` entry before running it:
+digest with its included `SHA256SUMS` entry before running it. The release's
+separate [SHA256SUMS](https://github.com/durck/nfsclient/releases/download/v0.1.0/SHA256SUMS)
+file contains checksums for the downloadable archives.
 
 ```powershell
 Get-FileHash .\nfsclient-windows-amd64.exe -Algorithm SHA256
@@ -59,6 +54,11 @@ chmod +x nfsclient-linux-amd64
 ```
 
 A checksum detects corrupted downloads; it is not a publisher signature.
+
+Development builds are also available from successful runs in
+[GitHub Actions → CI](https://github.com/durck/nfsclient/actions/workflows/ci.yml).
+Under **Artifacts**, select `nfsclient-Windows-amd64` or `nfsclient-Linux-amd64`;
+`checks-*` contains verification logs. CI artifacts expire after 14 days.
 
 ## Build and start
 

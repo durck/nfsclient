@@ -44,7 +44,8 @@ govulncheck ./...
 Successful CI builds upload the platform binary, project license, third-party
 notices and SHA256SUMS as development artifacts retained for 14 days. CI does
 not create tags or GitHub Releases. Download instructions are in the
-[README](../README.md#download-a-ci-build).
+[README](../README.md#install). Published releases retain versioned archives
+separately from the expiring CI artifacts.
 Test event totals include parent tests and subtests. A skipped native fixture is
 not evidence of interoperability. Review the generated summary and individual
 logs; historical totals do not certify a changed source tree.

@@ -1,9 +1,12 @@
 # Changelog
 
-User-visible changes are grouped by type. No version or release date is assigned
-until a tagged release is published.
+User-visible changes are grouped by version and type.
 
 ## [Unreleased]
+
+## [0.1.0] - 2026-10-07
+
+Initial public release for Windows x64 and Linux x64.
 
 ### Added
 
@@ -41,8 +44,8 @@ until a tagged release is published.
   notices, contributor guidance and private vulnerability-reporting guidance.
 - MIT license for project code and a recorded local NFSv4.1 transfer demo.
 - Multi-host NFS scan subcommand (`nfsclient scan`) with CIDR/range/file target
-  parsing, concurrent probing (configurable `--concurrency`), automatic IP-restriction
-  detection (NFS status 13 on MOUNT), no_root_squash detection via UID 0 spoofing, and
+  parsing, concurrent probing (configurable `--concurrency`), advertised MOUNT client
+  rules and observed access results, root-squash checks, and
   root-handle escape checks for NFSv2/v3 (knfsd handle heuristic) and NFSv4 (PUTROOTFH
   pseudo-root probe).  Output in human-readable table or JSON.
 - PKCS12/PFX certificate format for PKINIT: `--pkinit-pfx` and `--pkinit-pfx-password`
@@ -53,8 +56,8 @@ until a tagged release is published.
 
 ### Fixed
 
-- Installation instructions point to available CI artifacts and source builds
-  instead of describing downloads from unpublished releases.
+- Installation instructions link to versioned release archives, checksums,
+  development CI artifacts and source builds.
 - `ls` and `stat` correctly treat option-looking literal paths after `--`.
 - Preserve NFSv4 SETATTR error payloads/status during chmod, reject incomplete
   success acknowledgements, and explain possible partial metadata changes.
