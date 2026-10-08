@@ -77,7 +77,7 @@ TGT/service tickets. An independent Samba AD fixture covers single-realm
 AES128/AES256 authentication, denials and actual context expiry; Microsoft AD,
 ongoing replication, broader trust chains and cache/TGT renewal have separate
 implementation and interoperability bounds. NFS-layer context replacement is
-described in the [authentication guide](../../docs/AUTHENTICATION.md#client-trust-paths-authentication-and-refresh); this package does not
+described in the [authentication guide](../../docs/AUTHENTICATION.md#credential-sources); this package does not
 perform background credential renewal itself. The GSS FILE-cache owner now
 uses `RenewCCacheTGT` for authenticated home-TGT renewal while its NFS connection
 is alive, including idle periods; it cancels and joins renewal on close.
@@ -116,7 +116,7 @@ renew a service ticket through the legacy cache path. Exact requested TGTs are
 accepted; a substituted referral is rejected before insertion or further I/O.
 An external FILE cache still contributes only the validated home TGT. The strict
 profile subset and limits are documented in the
-[current client trust-path contract](../../docs/AUTHENTICATION.md#client-trust-paths).
+[current client trust-path contract](../../docs/AUTHENTICATION.md#realm-routing).
 The GSS adapter's bounded file loader expands include/includedir into one pinned
 snapshot before both authentication and trust-path parsing. The raw text parser
 still rejects unresolved includes and modules, even without a local capaths

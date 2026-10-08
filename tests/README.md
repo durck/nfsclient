@@ -134,7 +134,13 @@ fixture selectors, so use the direct `go test` command for this opt-in smoke run
 
 ## Recording the README demo
 
-Build the Windows client using the root README, then start a **fresh** disposable
+The published v0.2.0 walkthrough is 2:13, captured from the real Windows client
+against a disposable local NFS-Ganesha export. Chapters: **0:00** connection/help,
+**0:08** navigation/previews, **0:20** corporate/cloud hints, **0:47** transfers,
+**1:09** links/permissions, **1:38** moves/cleanup. Replay the original stream with
+`asciinema play docs/assets/demo.cast` from the repository root.
+
+Build the Windows client using the [build guide](../docs/DEVELOPMENT.md#build-from-source), then start a **fresh** disposable
 Ganesha fixture as above and wait for its grace period. The optional recorder
 requires Python with `pywinpty` (verified with 2.0.15) and `pyte` (0.8.2), and uses
 a native Windows PTY with a UTF-8 console. It seeds example files, types into the interactive

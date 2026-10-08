@@ -24,10 +24,10 @@ There is no unarmored or password fallback and no interactive input.
 The Go caller supplies sanitized environment/configuration, private credential
 copies, bounded output and a cancelable subprocess deadline. Source and helper
 are part of the trusted authentication implementation; do not substitute an
-untrusted executable. See [the FAST contract](../../../docs/AUTHENTICATION.md#linux-required-fast).
+untrusted executable. See [the FAST contract](../../../docs/AUTHENTICATION.md#fast-and-pkinit).
 
 PKINIT requires a MIT installation built with its PKINIT/OpenSSL plugin. The
 caller enables only that preauth plugin, selects certificate/key/CA and optional
 mandatory CRL checking, and the helper refuses every password prompt. The
 resulting canonical principal must match before a cache is emitted. See
-[the PKINIT contract](../../../docs/AUTHENTICATION.md#linux-pkinit).
+[the PKINIT contract](../../../docs/AUTHENTICATION.md#fast-and-pkinit).

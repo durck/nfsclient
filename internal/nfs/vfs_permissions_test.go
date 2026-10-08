@@ -164,7 +164,7 @@ func TestVFSAuthorization(t *testing.T) {
 					})
 					t.Run("posix-acl", func(t *testing.T) {
 						if os.Getenv("NFS_VIEWER_VFS_POSIX_ACL") != "1" && os.Getenv("NFS_VIEWER_VFS_POSIX_ACL_DIAGNOSTIC") != "1" {
-							t.Skip("Ganesha 4.3 Ubuntu VFS rejects a locally valid POSIX ACL grant; tracked in docs/PLAN.md")
+						t.Skip("Ganesha 4.3 Ubuntu VFS rejects a locally valid POSIX ACL grant in this fixture")
 						}
 						dir := lookup(t, bob, bobRoot, "acl")
 						file := lookup(t, bob, dir, "read.txt")

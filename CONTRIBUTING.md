@@ -8,7 +8,7 @@ captures. Follow [SECURITY.md](SECURITY.md) for suspected vulnerabilities.
 
 Discuss substantial new protocol profiles in an issue before implementation.
 Keep changes focused, describe observable behavior and its limits, and update the
-owning [guide](docs/INDEX.md) and [changelog](CHANGELOG.md). Use English for code,
+owning [guide](README.md#documentation-and-development) and [changelog](CHANGELOG.md). Use English for code,
 comments, documentation and commit subjects. Keep discussion respectful and
 focused on the work.
 

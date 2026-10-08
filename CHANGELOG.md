@@ -6,6 +6,10 @@ User-visible changes are grouped by version and type.
 
 ### Changed
 
+- Shorten the README around installation and first use; consolidate documentation
+  into five guides, remove the completed plan and historical implementation
+  reports, and update examples to the current executable name.
+
 - Expand the real Windows README demo to cover help, file hints, previews,
   transfers, links, permissions and cleanup, with a slower, compact introduction;
   document direct release downloads.

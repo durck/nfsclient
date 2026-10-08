@@ -18,7 +18,7 @@ private channel.
 
 ## Security boundaries
 
-See [authentication](docs/AUTHENTICATION.md), [transport](docs/TRANSPORT.md) and
+See [authentication](docs/AUTHENTICATION.md), [transport](docs/AUTHENTICATION.md#version-and-transport-selection) and
 [compatibility](docs/COMPATIBILITY.md) for supported profiles and explicit limits.
 AUTH_SYS does not authenticate a user cryptographically. `--tls-insecure` disables
 certificate verification. Server authorization remains authoritative, and

@@ -1,5 +1,41 @@
 # Development, verification and retained evidence
 
+## Build from source
+
+Go 1.26 is required; `go.mod` selects patched Go 1.26.8 automatically.
+
+Clone the repository and run the build commands from its directory:
+
+```sh
+git clone https://github.com/durck/nfsclient.git
+cd nfsclient
+```
+
+```powershell
+$previousCGOEnabled = $env:CGO_ENABLED
+try {
+  $env:CGO_ENABLED = "0"
+  go build -trimpath -o bin/nfsclient-windows-amd64.exe .
+} finally {
+  $env:CGO_ENABLED = $previousCGOEnabled
+}
+.\bin\nfsclient-windows-amd64.exe nfs.example.test --export /data
+```
+
+```sh
+CGO_ENABLED=0 go build -trimpath -o bin/nfsclient-linux-amd64 .
+./bin/nfsclient-linux-amd64 nfs.example.test --export /data
+```
+
+Launching without arguments displays help. By default, AUTH_SYS/TCP probes
+4.2, 4.1, 4.0, 3 and 2. Select `--nfs-version` explicitly to require a version.
+NFSv4 uses the server's pseudo-root; v2/v3 use export discovery/MOUNT.
+
+Before redistributing binaries, run `python -B tests/package_licenses.py` and
+include the root `LICENSE` and generated `bin/THIRD-PARTY-LICENSES.txt`. It includes all modules
+linked into either platform, the Go runtime and local GSS/Kerberos adaptations.
+The self-check generates this file automatically.
+
 ## Local self-check
 
 Run from the project root. Python 3, Go and a supported C compiler are required.
@@ -25,6 +61,13 @@ read-only source/module mounts and a reusable build cache. Inherited NFS_/KRB5_
 fixture selectors are removed. No real NAS/domain/hardware fixture is enabled.
 Logs and summaries are written to ignored `bin/verification/`.
 
+## Development downloads
+
+Development builds are also available from successful runs in
+[GitHub Actions → CI](https://github.com/durck/nfsclient/actions/workflows/ci.yml).
+Under **Artifacts**, select `nfsclient-Windows-amd64` or `nfsclient-Linux-amd64`;
+`checks-*` contains verification logs. CI artifacts expire after 14 days.
+
 ## Continuous integration
 
 GitHub Actions runs the native self-check on Windows and Linux, checks Go
@@ -34,7 +77,7 @@ versions and compiled with the project's selected Go toolchain.
 
 To run the additional analysis locally:
 
-```text
+```sh
 go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
 go install golang.org/x/vuln/cmd/govulncheck@v1.8.0
 staticcheck ./...
@@ -43,8 +86,8 @@ govulncheck ./...
 
 Successful CI builds upload the platform binary, project license, third-party
 notices and SHA256SUMS as development artifacts retained for 14 days. CI does
-not create tags or GitHub Releases. Download instructions are in the
-[README](../README.md#install). Published releases retain direct executables and
+not create tags or GitHub Releases. See [development downloads](#development-downloads) for artifact names
+and the [README](../README.md#install) for release downloads. Published releases retain direct executables and
 versioned archives separately from the expiring CI artifacts.
 
 To publish a release, update the changelog and README download links, run the
@@ -91,59 +134,12 @@ is selected, including newly added runtime inputs. Containment checks reject
 reparse points, and an empty selection preserves the previous archive pointer.
 Docker state is unaffected; default self-check containers remove themselves.
 
-## Engineering notes
-
-Keep independent wire oracles separate from client constants. Test legal peers
-and malformed/forbidden controls; high test counts alone cannot establish
-interoperability. Distinguish issued-but-unknown RPCs from local pre-issue refusal,
-and recheck state immediately before publishing recovered state or file bytes.
-Use protocol-specific packet counters for fragmentation evidence: global IP
-counters can include the fixture's own control traffic. On Windows, Winsock
-address-in-use is distinct from the generic `syscall.EADDRINUSE` constant.
-An NSM notification receipt is not a barrier for delayed lockd cleanup. Likewise,
-an unrelated successful SEQUENCE must never complete a pending OPEN/LOCK release
-intent; durable resource transitions require their exact saved operation.
-Durable slot confirmation, lock retirement and notification completion are
-separate journal boundaries. Successful recovery polling must persist renewed
-lease evidence from request start, and bounded journals must not exhaust storage
-solely while waiting for a supported long operation. A crash fixture must retain open file ownership
-through process termination; GC can otherwise release its lock early.
-A checkpoint message is not a crash barrier while background lease renewal is
-active: another SEQUENCE can mark the journal pending before the process exits.
-Lease-renewal crash tests therefore verify durable confirmation in the actual
-crash journal and stop at an observed cached WRITE boundary. A separate pending
-renewal case checks that unresolved state remains quarantined.
-Restore ownership before final mode/ACL, because chown may clear special bits.
-
-Credential deep copies must retain fields deliberately omitted from JSON:
-gokrb5 encryption keys use `json:"-"`. Renewal copies and fingerprints therefore
-handle key bytes explicitly, without writing or logging them. Validate renewed
-ticket flags, current validity and session-key lengths before replacing a live
-credential. Cancel connection-owned KDC work before waiting on an RPC mutex
-that foreground credential replacement may hold.
-For negotiated NFSv4 channels, use the complete RPC/compound budget once;
-subtracting a legacy WRITE-payload allowance again can reject legal metadata.
-Operation-specific error results still carry XDR bodies: SETATTR returns attrsset
-on failure and LOCKT DENIED returns a conflict owner/range. Consume and validate
-these before checking trailing bytes; a valid refusal must not poison the session.
-SETATTR ownership changes also require same-handle readback: NFSv3 may apply a
-subset before returning an error, and NFSv4 failure attrsset can explicitly
-acknowledge partial changes. CREATE followed by GETFH can similarly fail after
-the namespace mutation has already succeeded. Preserve uncertainty without
-replaying the mutation or reporting an ordinary unchanged-object refusal.
-Endpoint-specific identity approvals must bind a known port. A default candidate
-such as 2049 must not stand in for a port that legacy rpcbind has yet to discover.
-
-Always read/write documentation with explicit UTF-8 and inspect visible text:
-valid Unicode can already contain mojibake. Generated Unix scripts also need
-explicit LF newlines. Foreground APIs stay serial even when internal pNFS work
-is parallel; callbacks must not redefine the transfer's pinned identity.
-
 ## Documentation maintenance
 
 Update the owning topical guide and compatibility row when behavior changes.
-Keep README short. PLAN owns client implementation scope; this file owns verification
-and artifact handling. Fixture procedures have one catalog. Record runtime logs,
+Keep README short; it links to five task-oriented guides. This file owns
+verification and artifact handling. Completed plans belong in Git history.
+Fixture procedures have one catalog. Record runtime logs,
 review reports and chronological evidence in ignored artifacts, rather than
 adding a Markdown file per stage. Add a guide only for a distinct user-facing
 topic that cannot fit an existing guide; use contents for long references.
