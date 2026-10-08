@@ -42,7 +42,7 @@ type Options struct {
 	Fault                        string
 	WriteObserved                chan<- struct{}
 	ContinueWrite                <-chan struct{}
-	// Allow reset/abort errors only when the caller deliberately kills or
+	// Allow reset/abort/broken-pipe errors only when the caller deliberately kills or
 	// disconnects the initiator, including rejection of an injected fault.
 	AllowProcessKill bool
 	ReadAllowed      func(uint64, uint64) bool
@@ -117,7 +117,9 @@ func Start(t testing.TB, path string, options Options) *Target {
 
 func expectedDisconnect(err error, allowProcessKill bool) bool {
 	reset := errors.Is(err, syscall.ECONNRESET) || runtime.GOOS == "windows" && (errors.Is(err, syscall.Errno(10054)) || errors.Is(err, syscall.Errno(10053)))
-	return err == nil || errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) || allowProcessKill && reset
+	// A peer rejecting an injected bad digest may close before the target's
+	// remaining writes. Linux can report EPIPE instead of ECONNRESET here.
+	return err == nil || errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) || allowProcessKill && (reset || errors.Is(err, syscall.EPIPE))
 }
 
 func (s *Target) URL() string    { return "iscsi://" + s.listener.Addr().String() + "/" + Name + "/0" }

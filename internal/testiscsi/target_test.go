@@ -21,6 +21,8 @@ func TestExpectedDisconnect(t *testing.T) {
 		{name: "closed", err: net.ErrClosed, want: true},
 		{name: "unexpected-reset", err: syscall.ECONNRESET},
 		{name: "expected-reset", err: syscall.ECONNRESET, allow: true, want: true},
+		{name: "unexpected-broken-pipe", err: syscall.EPIPE},
+		{name: "expected-broken-pipe", err: syscall.EPIPE, allow: true, want: true},
 		{name: "unexpected-windows-abort", err: syscall.Errno(10053)},
 		{name: "expected-windows-abort", err: syscall.Errno(10053), allow: true, want: runtime.GOOS == "windows"},
 		{name: "expected-windows-reset", err: syscall.Errno(10054), allow: true, want: runtime.GOOS == "windows"},

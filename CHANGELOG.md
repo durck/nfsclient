@@ -40,6 +40,9 @@ User-visible changes are grouped by version and type.
 
 ### Fixed
 
+- Recognize an expected broken pipe in opt-in iSCSI fault-injection fixtures,
+  avoiding intermittent CI failures when clients reject corrupted digests.
+  Unexpected disconnects, timeouts and protocol errors still fail the tests.
 - Protected scans now receive the required service principal. Password-only
   authentication passes shared validation; conflicting credentials and ignored
   passwords under AUTH_SYS/SSPI are rejected.
