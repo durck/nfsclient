@@ -143,7 +143,7 @@ func TestDisplayPermissionsAndColors(t *testing.T) {
 		t.Fatal("invalid listing", plain.String())
 	}
 	stripped := colored.String()
-	for _, tone := range []string{cyan, blue, green, dim, bold, muted, orange, magenta, lavender, linkTone, faint, warm, "0"} {
+	for _, tone := range []string{cyan, blue, green, yellow, red, dim, bold, muted, orange, magenta, lavender, linkTone, warm, "0"} {
 		stripped = strings.ReplaceAll(stripped, "\x1b["+tone+"m", "")
 	}
 	if stripped != plain.String() {

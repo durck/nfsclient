@@ -58,12 +58,13 @@ func (s *Shell) listLocal(p string) error {
 		}
 		return entries[i].Name() < entries[j].Name()
 	})
-	rows := [][]cell{{{"NAME", bold}, {"SIZE", bold}, {"PERMISSIONS", muted}, {"MODIFIED", bold}}}
+	rows := [][]cell{{{"NAME", bold}, {"SIZE", bold}, {"PERMISSIONS", bold}, {"MODIFIED", bold}}}
+	notes := map[int]cell{}
 	now, dirs := time.Now(), 0
 	for _, info := range entries {
 		e := localEntry(info)
-		name, size, tone := label(info.Name()), humanSize(e.Attr.Size), fileTone(e)
-		meta, date := muted, dateTone(info.ModTime(), now)
+		name, size, tone := label(info.Name()), humanSize(e.Attr.Size), fileTone(e, filepath.ToSlash(parent))
+		date := dateTone(info.ModTime(), now)
 		if info.IsDir() {
 			name += "/"
 			size = "-"
@@ -78,20 +79,19 @@ func (s *Shell) listLocal(p string) error {
 				_, readErr = os.Stat(link)
 			}
 			if readErr != nil {
-				state := "unverified"
+				state := "unavailable"
 				if os.IsNotExist(readErr) {
 					state = "missing"
 				} else if os.IsPermission(readErr) {
-					state = "access denied"
+					state = "denied"
 				}
-				name += " [" + state + "]"
-				tone, meta, date = faint, faint, faint
+				notes[len(rows)] = linkNote(state)
 			}
 		}
-		rows = append(rows, []cell{{name, tone}, {size, meta}, {info.Mode().String(), meta}, {info.ModTime().Local().Format("2006-01-02 15:04"), date}})
+		rows = append(rows, []cell{{name, tone}, {size, ""}, {info.Mode().String(), ""}, {info.ModTime().Local().Format("2006-01-02 15:04"), date}})
 	}
 	fmt.Fprintln(s.Out, "  "+paint(s.Color, muted, "LOCAL  ")+label(full))
-	if err := table(s.Out, rows, s.Color); err != nil {
+	if err := tableWithNameNotes(s.Out, rows, s.Color, notes); err != nil {
 		return err
 	}
 	_, err = fmt.Fprintln(s.Out, "\n  "+paint(s.Color, muted, fmt.Sprintf("%d entries · %d directories", len(entries), dirs))+"\n")

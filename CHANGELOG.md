@@ -4,8 +4,25 @@ User-visible changes are grouped by version and type.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-08
+
+### Changed
+
+- Shorten owner/group names ending in `@localhost` or `@localdomain` in file
+  listings; preserve other domains and the exact identities in `stat` JSON.
+- Unified terminal colors across listings, prompts, transfers and session status.
+  Familiar system files/directories use pale gray exact-name hints; configuration
+  and credential hints have separate colors. Current-year modification dates
+  remain orange for every entry, including unavailable links. Link status labels
+  are colored independently; metadata remains readable and color-free output
+  retains the same layout and status text.
+
 ### Added
 
+- Corporate and cloud file hints using known listing paths, including AD/Samba,
+  GPP, database/service profiles, Jenkins, mail/backups, cloud credentials and
+  Terraform state. `legend PATH` explains the matched rule with remote completion.
+  Stacked backup/archive suffixes retain hints; example/template names are toned down.
 - Shell `ln`, `ln -s`, `readlink`, `chown` and `chgrp`, with pinned identities,
   explicit symlink rules, ownership readback and matching help/completion.
 - Bounded `mounts` diagnostics and opaque `handle` hex/JSON inspection;

@@ -53,6 +53,32 @@ func TestProgressCompletionFailureAndThrottling(t *testing.T) {
 	}
 }
 
+func TestTransferColorsDescribeOutcome(t *testing.T) {
+	for _, operation := range []string{"GET", "PUT"} {
+		for _, failed := range []bool{false, true} {
+			var out bytes.Buffer
+			p := newProgress(&out, operation, "source", "destination", "always", false, true)
+			p.Update(0, 100)
+			p.Update(100, 100)
+			if !strings.Contains(out.String(), "\x1b["+cyan+"m") || strings.Contains(out.String(), "\x1b["+green+"m") {
+				t.Fatal("active transfer must not look completed", out.String())
+			}
+			var err error
+			if failed {
+				err = errors.New("failed to publish")
+			}
+			p.Finish(100, err)
+			status, tone := "DONE", green
+			if failed {
+				status, tone = "FAILED", red
+			}
+			if !strings.Contains(out.String(), paint(true, tone, status)) {
+				t.Fatal(out.String())
+			}
+		}
+	}
+}
+
 func TestProgressZeroAndGrowingFiles(t *testing.T) {
 	for _, total := range []uint64{0, 1} {
 		var out bytes.Buffer

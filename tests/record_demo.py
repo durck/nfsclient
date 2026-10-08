@@ -43,7 +43,7 @@ def main():
             "--nfs-version", "4.1", "--export", "/data",
             "--auto-uid=false", "--auto-escape=false"]
     seed = [*base, "--uid", "0", "--gid", "0"]
-    for command in ("mkdir docs", "mkdir uploads", "chmod 777 uploads",
+    for command in ("mkdir docs", "mkdir uploads", "mkdir ProgramData", "chmod 777 uploads",
                     "put README.txt README.txt", "put README.txt docs/README.txt",
                     "put client.conf docs/client.conf", "put notes.txt docs/notes.txt"):
         seed.extend(["-c", command])

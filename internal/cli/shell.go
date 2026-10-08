@@ -280,10 +280,7 @@ func (s *Shell) Execute(ctx context.Context, line string) (bool, error) {
 		}
 		err = s.printCommandHelp(topic)
 	case "legend":
-		if err := check(0, 0, "legend"); err != nil {
-			return false, err
-		}
-		err = s.printLegend()
+		err = s.explainColors(ctx, a[1:])
 	case "exports":
 		err = s.discoverExports(ctx, a[1:])
 	case "use":
@@ -504,9 +501,10 @@ func (s *Shell) Execute(ctx context.Context, line string) (bool, error) {
 		}
 		var entries []nfs.Entry
 		var links map[string]session.LinkInfo
-		entries, links, err = sess.List(ctx, p, 32)
+		var parent string
+		entries, links, parent, err = sess.ListWithDirectory(ctx, p, 32)
 		if entries != nil {
-			if printErr := s.printEntries(entries, links); printErr != nil {
+			if printErr := s.printEntriesAt(entries, parent, links); printErr != nil {
 				return false, printErr
 			}
 		}

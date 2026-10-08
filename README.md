@@ -28,18 +28,18 @@ captured directly. Downloaded bytes were verified. See
 
 ## Install
 
-Download [v0.1.0](https://github.com/durck/nfsclient/releases/tag/v0.1.0)
+Download [v0.2.0](https://github.com/durck/nfsclient/releases/tag/v0.2.0)
 for your platform, or [build from source](#build-and-start).
 
 | Platform | Download | Executable inside |
 | --- | --- | --- |
-| Windows x64 | [ZIP](https://github.com/durck/nfsclient/releases/download/v0.1.0/nfsclient-v0.1.0-windows-amd64.zip) | `nfsclient-windows-amd64.exe` |
-| Linux x64 | [tar.gz](https://github.com/durck/nfsclient/releases/download/v0.1.0/nfsclient-v0.1.0-linux-amd64.tar.gz) | `nfsclient-linux-amd64` |
+| Windows x64 | [ZIP](https://github.com/durck/nfsclient/releases/download/v0.2.0/nfsclient-v0.2.0-windows-amd64.zip) | `nfsclient-windows-amd64.exe` |
+| Linux x64 | [tar.gz](https://github.com/durck/nfsclient/releases/download/v0.2.0/nfsclient-v0.2.0-linux-amd64.tar.gz) | `nfsclient-linux-amd64` |
 
 Extract the archive and keep the accompanying `LICENSE`,
 `THIRD-PARTY-LICENSES.txt` and `SHA256SUMS`. Compare the executable's SHA-256
 digest with its included `SHA256SUMS` entry before running it. The release's
-separate [SHA256SUMS](https://github.com/durck/nfsclient/releases/download/v0.1.0/SHA256SUMS)
+separate [SHA256SUMS](https://github.com/durck/nfsclient/releases/download/v0.2.0/SHA256SUMS)
 file contains checksums for the downloadable archives.
 
 ```powershell
@@ -189,6 +189,41 @@ bounded UTF-8 preview before printing to a terminal; redirected output retains
 raw bytes. `hex` provides a bounded binary preview. `lls`, `lpwd` and `lcd` operate
 on local files. `legend` explains colors; `--color=never` or `NO_COLOR` disables them.
 
+Remote and local listings use the same palette. Directories are warm yellow,
+configuration names blue, credential-related names pink, and data/backup names
+lavender. Familiar system and boilerplate names are pale gray: for example,
+`Windows`, `ProgramData`, `Program Files`, `System Volume Information`,
+`desktop.ini`, `Thumbs.db`, and `README.md`. These are case-insensitive exact
+basename hints, not an assessment of contents or safety; directory children
+keep their own colors. **Modification dates in the current local calendar year
+are always orange**, including gray entries and links with unavailable targets.
+Link status labels distinguish missing/looping targets (red), denied/unverified
+targets (amber), and unchecked targets (gray). Active transfers are turquoise,
+successful completion green, and failures red; status text remains available
+without color.
+
+The listing's `OWNER` column omits the local placeholder suffixes `@localhost`
+and `@localdomain` from owner/group names (for example, `root:root`). Other
+domains remain visible; `stat` JSON retains the exact server-provided values.
+
+Hints cover on-premises infrastructure as well as cloud tooling:
+
+- AD/Samba identity stores, GPP files under `Preferences`, Windows deployment
+  files, IIS/Java service configuration, Oracle wallets and DB connection profiles.
+- Jenkins keys, network configurations, administrative scripts, command history,
+  mail archives, database/1C dumps, virtual disks and backup formats.
+- AWS, Docker, Kubernetes, Azure, Google Cloud and Terraform configuration/state.
+
+Known paths refine ambiguous names: `.docker/config.json` gets a credential hint,
+while an ordinary `config.json` remains a data file. Matching uses the known
+listing/export path without extra network probes; it cannot identify paths above
+an export or infer a server's real storage layout. Directory hints do not propagate
+to children. Repeated backup/archive suffixes preserve the underlying hint
+(`id_rsa.bak.old`, `credentials.xml.tar.gz`); explicit `.example`, `.sample`,
+`.template`, `.dist` and `.default` suffixes receive a configuration hint.
+Use `legend PATH` to explain one remote entry, including with color disabled.
+These are name/path hints, never confirmation that credentials exist or are valid.
+
 Transfers display progress on stderr, with `--progress=auto|always|never`.
 Completion includes stable writes or local sync/publication. Interactive
 collisions offer overwrite where supported, rename or cancel; batch commands
@@ -216,7 +251,7 @@ when a parent denies listing. Explicit paths are independent of traversal depth
 but share the time/entry budget and are limited to 64 components. NFSv2/v3 use
 the longest advertised ancestor export or try the supplied path as a MOUNT root;
 a hidden mount root cannot be inferred from an arbitrary file path.
-`--paths-file` (unreleased; build from source) adds paths from a local UTF-8 file,
+`--paths-file` adds paths from a local UTF-8 file,
 one absolute server path per line. An initial UTF-8 BOM and CRLF are accepted;
 surrounding whitespace, blank lines and full-line `#` comments are ignored.
 Relative filenames in the shell use the directory selected by `lcd`. File paths
@@ -325,7 +360,7 @@ nfsclient scan 10.0.0.0/24 --sec krb5 --principal user --domain CORP.LOCAL --pas
 # targets from file, JSON output
 nfsclient scan -f targets.txt --output json
 
-# domain-root discovery (unreleased; build from source)
+# domain-root discovery
 nfsclient scan --dns-domain example.test --dns-server 192.0.2.53 --no-squash-check --no-escape-check
 
 # known paths, including paths below directories that cannot be listed
@@ -359,7 +394,7 @@ endpoints stop the invocation before any NFS probes, including when other
 targets were supplied. `--timeout` also bounds the SRV lookup. `--dns-server`
 is used throughout discovery and subsequent connection name resolution, with
 no fallback to system DNS when an explicit server is selected. These options
-and `--paths-file` are available in source builds after v0.1.0.
+and `--paths-file` are included in v0.2.0 and later.
 
 For each reachable host the scan reports:
 

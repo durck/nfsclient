@@ -46,6 +46,16 @@ notices and SHA256SUMS as development artifacts retained for 14 days. CI does
 not create tags or GitHub Releases. Download instructions are in the
 [README](../README.md#install). Published releases retain versioned archives
 separately from the expiring CI artifacts.
+
+To publish a release, update the changelog and README download links, run the
+local checks, and push the release commit and its version tag. Require successful
+Windows/Linux CI for that exact commit. Download its `nfsclient-Windows-amd64`
+and `nfsclient-Linux-amd64` artifacts and verify the included `SHA256SUMS` files.
+Package those unchanged binaries and notices into versioned ZIP/tar.gz archives;
+preserve the Linux executable mode and generate a separate checksum file for the
+archives. Verify the archives, publish them with release notes identifying the
+source commit and CI run, then verify the published tag and downloadable assets.
+
 Test event totals include parent tests and subtests. A skipped native fixture is
 not evidence of interoperability. Review the generated summary and individual
 logs; historical totals do not certify a changed source tree.

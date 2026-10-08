@@ -56,7 +56,7 @@ func (s *Shell) transfer(ctx context.Context, operation, source, destination str
 			}
 			return fmt.Errorf("%w: %s (choose another destination; interactive mode offers overwrite or rename)", session.ErrDestinationExists, label(destination))
 		}
-		fmt.Fprintf(s.Err, "\n  %s %s\n", paint(s.ErrColor, orange, "EXISTS"), label(destination))
+		fmt.Fprintf(s.Err, "\n  %s %s\n", paint(s.ErrColor, yellow, "EXISTS"), label(destination))
 		choices, keys := "[o] overwrite  [r] rename  [c] cancel (Enter): ", "orc"
 		if !regular {
 			choices, keys = "[r] rename  [c] cancel (not a regular file): ", "rc"

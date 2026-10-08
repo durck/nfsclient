@@ -36,12 +36,19 @@ func (s *Session) listEntries(ctx context.Context, p string, follow bool) ([]nfs
 // The bounded, serial probes restore AUTH_SYS credentials and never read files.
 // Transport failures return the listing collected so far plus an explicit error.
 func (s *Session) List(ctx context.Context, p string, limit int) ([]nfs.Entry, map[string]LinkInfo, error) {
+	entries, links, _, err := s.ListWithDirectory(ctx, p, limit)
+	return entries, links, err
+}
+
+// ListWithDirectory also returns the resolved parent of the returned entries.
+// It reuses the listing's resolution without additional network requests.
+func (s *Session) ListWithDirectory(ctx context.Context, p string, limit int) ([]nfs.Entry, map[string]LinkInfo, string, error) {
 	entries, dir, err := s.listEntries(ctx, p, false)
 	if err != nil && s.AutoUIDScan && isPermDenied(err) {
 		entries, dir, err = s.retryWithScan(ctx, p, false, err)
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	links := make(map[string]LinkInfo)
 	for _, e := range entries {
@@ -101,12 +108,12 @@ func (s *Session) List(ctx context.Context, p string, limit int) ([]nfs.Entry, m
 			} else {
 				info.State = "unavailable"
 				links[e.Name] = info
-				return entries, links, fmt.Errorf("inspect link %q: %w", e.Name, err)
+				return entries, links, dir, fmt.Errorf("inspect link %q: %w", e.Name, err)
 			}
 		}
 		links[e.Name] = info
 	}
-	return entries, links, nil
+	return entries, links, dir, nil
 }
 
 // retryWithScan is called on permission denied when AutoUIDScan is set.

@@ -125,10 +125,7 @@ func etaPrefix(eta, status string) string {
 }
 
 func (p *transferProgress) activeTone() string {
-	if p.operation == "PUT" {
-		return lavender
-	}
-	return green
+	return cyan
 }
 
 func (p *transferProgress) render(now time.Time, status string, complete bool) {

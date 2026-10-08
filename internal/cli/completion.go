@@ -73,7 +73,7 @@ func completionMetadata(command string) completionSpec {
 	case "ln":
 		spec.args = []completionArgument{r, r}
 		flags(0, "-s")
-	case "readlink":
+	case "readlink", "legend":
 		spec.args = []completionArgument{r}
 	case "acl", "label", "setlabel", "xattrs", "getxattr", "removexattr", "cat", "hex", "mkdir", "rm", "rmdir", "namedattrs", "uid-scan", "allocate", "deallocate", "writesame":
 		spec.args = []completionArgument{r}

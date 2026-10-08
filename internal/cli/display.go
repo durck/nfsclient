@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -15,16 +16,6 @@ import (
 	"github.com/chzyer/readline"
 	"nfsclient/internal/nfs"
 	"nfsclient/internal/session"
-)
-
-const (
-	cyan   = "36"
-	blue   = "34"
-	green  = "32"
-	yellow = "33"
-	red    = "1;31"
-	dim    = "2"
-	bold   = "1"
 )
 
 func paint(enabled bool, tone, text string) string {
@@ -104,12 +95,21 @@ type cell struct{ text, tone string }
 
 // Pad plain text before applying color so ANSI bytes cannot shift columns.
 func table(w io.Writer, rows [][]cell, color bool) error {
+	return tableWithNameNotes(w, rows, color, nil)
+}
+
+// Notes are separate spans in the first column. Keep their plain-text width
+// in the layout so independently colored statuses never shift later columns.
+func tableWithNameNotes(w io.Writer, rows [][]cell, color bool, notes map[int]cell) error {
 	if len(rows) == 0 {
 		return nil
 	}
 	widths := make([]int, len(rows[0]))
-	for _, row := range rows {
+	for rowIndex, row := range rows {
 		for i, c := range row {
+			if i == 0 {
+				c.text += notes[rowIndex].text
+			}
 			widths[i] = max(widths[i], (readline.Runes{}).WidthAll([]rune(c.text)))
 		}
 	}
@@ -118,11 +118,18 @@ func table(w io.Writer, rows [][]cell, color bool) error {
 		line.WriteString("  ")
 		for i, c := range row {
 			padding := widths[i] - (readline.Runes{}).WidthAll([]rune(c.text))
+			if i == 0 {
+				padding -= (readline.Runes{}).WidthAll([]rune(notes[rowIndex].text))
+			}
 			if rows[0][i].text == "SIZE" {
 				line.WriteString(strings.Repeat(" ", padding))
 				padding = 0
 			}
 			line.WriteString(paint(color, c.tone, c.text))
+			if i == 0 {
+				note := notes[rowIndex]
+				line.WriteString(paint(color, note.tone, note.text))
+			}
 			if i < len(row)-1 {
 				line.WriteString(strings.Repeat(" ", padding+2))
 			}
@@ -144,6 +151,22 @@ func table(w io.Writer, rows [][]cell, color bool) error {
 }
 
 func (s *Shell) printEntries(entries []nfs.Entry, linkMaps ...map[string]session.LinkInfo) error {
+	parent := ""
+	if s.Session != nil {
+		parent = s.Session.CWD
+	}
+	return s.printEntriesAt(entries, parent, linkMaps...)
+}
+
+func (s *Shell) hintParent(parent string) string {
+	if s.Session != nil && !s.Session.Escaped {
+		return path.Join(s.Session.Export, parent)
+	}
+	return parent
+}
+
+func (s *Shell) printEntriesAt(entries []nfs.Entry, parent string, linkMaps ...map[string]session.LinkInfo) error {
+	parent = s.hintParent(parent)
 	links := map[string]session.LinkInfo{}
 	if len(linkMaps) > 0 {
 		links = linkMaps[0]
@@ -155,11 +178,12 @@ func (s *Shell) printEntries(entries []nfs.Entry, linkMaps ...map[string]session
 		}
 		return entries[i].Name < entries[j].Name
 	})
-	rows := [][]cell{{{"NAME", bold}, {"SIZE", bold}, {"PERMISSIONS", muted}, {"OWNER", muted}, {"MODIFIED", bold}}}
+	rows := [][]cell{{{"NAME", bold}, {"SIZE", bold}, {"PERMISSIONS", bold}, {"OWNER", bold}, {"MODIFIED", bold}}}
+	notes := map[int]cell{}
 	dirs := 0
 	for _, e := range entries {
-		name, tone, size := label(e.Name), fileTone(e), humanSize(e.Attr.Size)
-		metadata, modifiedTone := muted, dateTone(e.Attr.MTime, now)
+		name, tone, size := label(e.Name), fileTone(e, parent), humanSize(e.Attr.Size)
+		modifiedTone := dateTone(e.Attr.MTime, now)
 		switch e.Attr.Type {
 		case 2:
 			name += "/"
@@ -174,20 +198,19 @@ func (s *Shell) printEntries(entries []nfs.Entry, linkMaps ...map[string]session
 			if info.Target != "" {
 				name += " -> " + label(info.Target)
 			}
-			if info.State != "reachable" {
-				state := map[string]string{"missing": "missing", "denied": "access denied", "loop": "link loop", "unavailable": "unverified", "unchecked": "unchecked"}[info.State]
-				name += " [" + state + "]"
-				if info.State != "unchecked" {
-					tone, metadata, modifiedTone = faint, faint, faint
-				}
-			}
+			notes[len(rows)] = linkNote(info.State)
 		}
 		if e.Attr.Offline != "" {
-			name += " [" + string(e.Attr.Offline) + "]"
+			note := notes[len(rows)]
+			if note.tone != red {
+				note.tone = yellow
+			}
+			note.text += " [" + string(e.Attr.Offline) + "]"
+			notes[len(rows)] = note
 		}
-		rows = append(rows, []cell{{name, tone}, {size, metadata}, {permissions(e.Attr), metadata}, {ownerLabel(e.Attr), metadata}, {e.Attr.MTime.Local().Format("2006-01-02 15:04"), modifiedTone}})
+		rows = append(rows, []cell{{name, tone}, {size, ""}, {permissions(e.Attr), ""}, {ownerLabel(e.Attr), ""}, {e.Attr.MTime.Local().Format("2006-01-02 15:04"), modifiedTone}})
 	}
-	if err := table(s.Out, rows, s.Color); err != nil {
+	if err := tableWithNameNotes(s.Out, rows, s.Color, notes); err != nil {
 		return err
 	}
 	_, err := fmt.Fprintln(s.Out, "\n  "+paint(s.Color, muted, fmt.Sprintf("%d entries · %d directories · %d other", len(entries), dirs, len(entries)-dirs))+"\n")
@@ -238,7 +261,7 @@ func section(w io.Writer, title string, color bool) {
 		tone = lavender
 	}
 	if title == "FILES" {
-		tone = green
+		tone = bold
 	}
 	fmt.Fprintln(w, "\n  "+paint(color, tone, title)+"\n  "+paint(color, muted, strings.Repeat("-", 48)))
 }
@@ -324,22 +347,26 @@ func (s *Shell) printSession(w io.Writer, color bool) error {
 		if state.Client.Security() == "krb5p" {
 			protection = "Privacy: NFS arguments and results encrypted and authenticated"
 		}
-		rows = append(rows, []cell{{"Protection", dim}, {protection, yellow}})
+		rows = append(rows, []cell{{"Protection", dim}, {protection, ""}})
 		if expiry := state.Client.KerberosExpiry(); !expiry.IsZero() {
 			status := expiry.Local().Format("2006-01-02 15:04:05 MST")
+			tone := ""
 			if !time.Now().Before(expiry) {
 				status += "; expired"
+				tone = red
 			}
-			rows = append(rows, []cell{{"Ticket ends", dim}, {status, yellow}})
+			rows = append(rows, []cell{{"Ticket ends", dim}, {status, tone}})
 		}
 		rows = append(rows, []cell{{"Renewals", dim}, {fmt.Sprintf("%d (automatic before RPC)", state.Client.KerberosRenewals()), ""}})
 	}
 	if state.Client.TLSActive() {
 		protection := "TLS 1.3; server certificate verified"
+		tone := green
 		if !state.Client.TLSCertificateVerified() {
 			protection = "TLS 1.3; certificate verification disabled (--tls-insecure)"
+			tone = yellow
 		}
-		rows = append(rows, []cell{{"Transport security", dim}, {protection, yellow}})
+		rows = append(rows, []cell{{"Transport security", dim}, {protection, tone}})
 	}
 	if state.ProbeError != nil {
 		rows = append(rows, []cell{{"Probe", dim}, {label(state.ProbeError.Error()), yellow}})
@@ -372,25 +399,56 @@ func (s *Shell) prompt(ctx context.Context) string {
 		}
 		s.promptClient, s.promptHost = s.Session.Client, s.Session.Host
 	}
-	return paint(s.Color, muted, "nfs") + " " + paint(s.Color, cyan, s.promptServer) + " " + paint(s.Color, warm, label(s.Session.CWD)) + " " + paint(s.Color, green, "> ")
+	return paint(s.Color, muted, "nfs") + " " + paint(s.Color, cyan, s.promptServer) + " " + paint(s.Color, warm, label(s.Session.CWD)) + " " + paint(s.Color, bold, "> ")
 }
 
 func (s *Shell) printLegend() error {
-	section(s.Out, "FILE COLORS", s.Color)
+	section(s.Out, "COLOR LEGEND", s.Color)
 	rows := [][]cell{
 		{{"Directories", warm}, {"Warm yellow; trailing /", ""}},
-		{{"Common files", muted}, {"README, licenses, images, fonts, libraries, lockfiles", ""}},
-		{{"Config / key hints", magenta}, {".env, .conf, .ini, private-key names, keystores", ""}},
+		{{"Familiar names", muted}, {"Pale gray: Windows, ProgramData, Program Files, desktop.ini, README", ""}},
+		{{"Other muted files", muted}, {"Images, fonts, libraries, lockfiles; matched by name/type only", ""}},
+		{{"Configuration hints", blue}, {".conf, .ini, .yaml, .gitconfig, appsettings.json", ""}},
+		{{"Credential hints", magenta}, {".env, private-key names, credential stores; not content detection", ""}},
+		{{"Corporate infrastructure", blue}, {"Service/DB/network configs, deployment scripts and policy files", ""}},
+		{{"Contextual credential hints", magenta}, {"GPP Preferences, .docker/config.json, .kube/config, Terraform state", ""}},
 		{{"Data / backup hints", lavender}, {"Databases, backups, archives, logs, documents", ""}},
 		{{"Executable", green}, {"Other regular files with executable mode bits", ""}},
 		{{"Modified this year", orange}, {fmt.Sprintf("Local modification year = %d", time.Now().Year()), ""}},
 		{{"Symbolic link", linkTone}, {"name@ -> target; checked within the current session root", ""}},
-		{{"Unavailable link", faint}, {"[missing], [access denied], [link loop], or [unverified]", ""}},
+		{{"Broken link", red}, {"[missing] or [link loop]; only the status is colored", ""}},
+		{{"Warning", yellow}, {"[access denied], [unverified], or certificate verification disabled", ""}},
+		{{"Not checked", muted}, {"[unchecked]; no conclusion about access or existence", ""}},
+		{{"Server / active transfer", cyan}, {"Connection target or work in progress", ""}},
+		{{"Success", green}, {"Connected, DONE, or verified TLS certificate", ""}},
+		{{"Error", red}, {"Failed operation or expired Kerberos ticket", ""}},
 	}
 	if err := table(s.Out, rows, s.Color); err != nil {
 		return err
 	}
-	_, err := fmt.Fprint(s.Out, "\n  Filename hints only: file contents are never inspected.\n  Up to 32 links are inspected per ls; the rest show [unchecked].\n  Use ls LINK to inspect one link, or ls LINK/ to list its directory.\n\n")
+	_, err := fmt.Fprint(s.Out, "\n  Filename hints only: file contents are never inspected. Paths refine ambiguous names.\n  Familiar names match exact basenames, case-insensitively; children keep their own colors.\n  Gray does not mean safe, unchanged, or inaccessible. Current-year dates stay highlighted.\n  Backup/archive suffixes retain underlying hints; .example/.sample/.template files are blue.\n  Use legend PATH to explain one remote entry's name/path hint.\n  Up to 32 links are inspected per ls; the rest show [unchecked].\n  Use ls LINK to inspect one link, or ls LINK/ to list its directory.\n\n")
+	return err
+}
+
+func (s *Shell) explainColors(ctx context.Context, args []string) error {
+	if len(args) == 0 {
+		return s.printLegend()
+	}
+	p, _, err := inspectionPath(args, "", true)
+	if err != nil {
+		return fmt.Errorf("usage: legend [PATH]: %w", err)
+	}
+	restore := s.pinInspectionIdentity()
+	defer restore()
+	n, resolved, err := s.Session.Resolve(ctx, p, false)
+	if err != nil {
+		return err
+	}
+	e := nfs.Entry{Name: path.Base(resolved), Node: n}
+	h := classifyFile(e, s.hintParent(path.Dir(resolved)))
+	_, err = fmt.Fprintf(s.Out, "  %s\n  Hint: %s\n  Modified: %s\n  Name/path and metadata only; file contents are not inspected.\n",
+		paint(s.Color, h.tone, label(resolved)), h.reason,
+		paint(s.Color, dateTone(n.Attr.MTime, time.Now()), n.Attr.MTime.Local().Format("2006-01-02 15:04")))
 	return err
 }
 
@@ -400,7 +458,17 @@ func (s *Shell) printHelp() error {
 
 func ownerLabel(a nfs.Attr) string {
 	if a.Owner != "" || a.Group != "" {
-		return label(a.Owner) + ":" + label(a.Group)
+		return localOwnerLabel(a.Owner) + ":" + localOwnerLabel(a.Group)
 	}
 	return fmt.Sprintf("%d:%d", a.UID, a.GID)
+}
+
+// Shorten only local placeholder domains for display. Preserve the original
+// NFS identity in attributes, JSON, ownership updates and access decisions.
+func localOwnerLabel(value string) string {
+	name, domain, found := strings.Cut(value, "@")
+	if found && name != "" && (strings.EqualFold(domain, "localhost") || strings.EqualFold(domain, "localdomain")) {
+		return label(name)
+	}
+	return label(value)
 }

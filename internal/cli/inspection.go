@@ -70,7 +70,7 @@ func inspectionPath(args []string, flag string, required bool) (string, bool, er
 			literal = true
 			continue
 		}
-		if !literal && arg == flag {
+		if !literal && flag != "" && arg == flag {
 			if found {
 				return "", false, fmt.Errorf("%s must not repeat", flag)
 			}
@@ -127,7 +127,7 @@ func (s *Shell) listWithOffline(ctx context.Context, args []string) error {
 	}
 	restore := s.pinInspectionIdentity()
 	defer restore()
-	entries, links, err := s.Session.List(ctx, p, 32)
+	entries, links, parent, err := s.Session.ListWithDirectory(ctx, p, 32)
 	if err != nil {
 		return err
 	}
@@ -140,11 +140,11 @@ func (s *Shell) listWithOffline(ctx context.Context, args []string) error {
 		}
 		entries[i].Attr.Offline, err = s.Session.Client.OfflineMetadata(ctx, entries[i].Handle)
 		if err != nil {
-			if printErr := s.printEntries(entries, links); printErr != nil {
+			if printErr := s.printEntriesAt(entries, parent, links); printErr != nil {
 				return printErr
 			}
 			return fmt.Errorf("offline metadata %q: %w", entries[i].Name, err)
 		}
 	}
-	return s.printEntries(entries, links)
+	return s.printEntriesAt(entries, parent, links)
 }
