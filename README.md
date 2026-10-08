@@ -17,30 +17,40 @@ by topic. See [contributing](CONTRIBUTING.md) and the [security policy](SECURITY
 Licensed under [MIT](LICENSE). Adapted GSS/Kerberos components retain their
 original notices; binary distributions also include third-party licenses.
 
-![Interactive Windows terminal: navigation, Tab completion, file preview, upload and download over NFSv4.1](docs/assets/demo.gif)
+![Real Windows session: navigation, file hints, transfers, links and permissions over NFSv4.1](docs/assets/demo.gif)
 
-[Download the asciinema recording](docs/assets/demo.cast) for a full-resolution
+[Watch the full 2:13 video](docs/assets/demo.mp4) with seeking, or
+[download the asciinema recording](docs/assets/demo.cast) for a full-resolution
 replay (`asciinema play docs/assets/demo.cast`). Recorded from the real Windows
-interactive client against a disposable local NFS-Ganesha export. Commands are
-typed automatically, including Tab completion; terminal output and timing are
-captured directly. Downloaded bytes were verified. See
+interactive v0.2.0 client against a disposable local NFS-Ganesha export. The
+extended walkthrough covers help, navigation and Tab completion, text/hex
+previews, corporate/cloud filename hints and `legend PATH`, upload/download,
+symbolic and hard links, permissions, moves and cleanup. Commands are typed
+automatically, including real Tab completion; the original `.cast` preserves
+captured terminal output and timing. Local paths and private identifiers are
+excluded, and downloaded bytes were verified. See
 [recording instructions](tests/README.md#recording-the-readme-demo).
+
+Video chapters: **0:00** connection/help, **0:08** navigation/previews,
+**0:20** corporate/cloud hints, **0:47** transfers, **1:09** links/permissions,
+**1:38** moves/cleanup.
 
 ## Install
 
 Download [v0.2.0](https://github.com/durck/nfsclient/releases/tag/v0.2.0)
 for your platform, or [build from source](#build-and-start).
 
-| Platform | Download | Executable inside |
+| Platform | Direct executable | Bundle with licenses |
 | --- | --- | --- |
-| Windows x64 | [ZIP](https://github.com/durck/nfsclient/releases/download/v0.2.0/nfsclient-v0.2.0-windows-amd64.zip) | `nfsclient-windows-amd64.exe` |
-| Linux x64 | [tar.gz](https://github.com/durck/nfsclient/releases/download/v0.2.0/nfsclient-v0.2.0-linux-amd64.tar.gz) | `nfsclient-linux-amd64` |
+| Windows x64 | [nfsclient-windows-amd64.exe](https://github.com/durck/nfsclient/releases/download/v0.2.0/nfsclient-windows-amd64.exe) | [ZIP](https://github.com/durck/nfsclient/releases/download/v0.2.0/nfsclient-v0.2.0-windows-amd64.zip) |
+| Linux x64 | [nfsclient-linux-amd64](https://github.com/durck/nfsclient/releases/download/v0.2.0/nfsclient-linux-amd64) | [tar.gz](https://github.com/durck/nfsclient/releases/download/v0.2.0/nfsclient-v0.2.0-linux-amd64.tar.gz) |
 
-Extract the archive and keep the accompanying `LICENSE`,
-`THIRD-PARTY-LICENSES.txt` and `SHA256SUMS`. Compare the executable's SHA-256
-digest with its included `SHA256SUMS` entry before running it. The release's
-separate [SHA256SUMS](https://github.com/durck/nfsclient/releases/download/v0.2.0/SHA256SUMS)
-file contains checksums for the downloadable archives.
+Download a standalone executable or extract a bundle. The release includes
+`LICENSE` and `THIRD-PARTY-LICENSES.txt` separately and inside both bundles.
+Compare your download's SHA-256 digest with its entry in the release's
+[SHA256SUMS](https://github.com/durck/nfsclient/releases/download/v0.2.0/SHA256SUMS).
+Bundle-local checksums cover the extracted files; release checksums cover
+the direct executables, archives and license files.
 
 ```powershell
 Get-FileHash .\nfsclient-windows-amd64.exe -Algorithm SHA256
@@ -48,7 +58,7 @@ Get-FileHash .\nfsclient-windows-amd64.exe -Algorithm SHA256
 ```
 
 ```sh
-sha256sum -c SHA256SUMS
+sha256sum nfsclient-linux-amd64  # Compare with the matching SHA256SUMS entry.
 chmod +x nfsclient-linux-amd64
 ./nfsclient-linux-amd64 --help
 ```

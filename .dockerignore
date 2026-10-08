@@ -1,5 +1,12 @@
 bin/
 .git/
+.claude/
+nfsclient
+nfsclient.exe
+checks-Linux/
+checks-Windows/
+.env
+.env.*
 **/__pycache__/
 **/.pytest_cache/
 **/*.py[cod]

@@ -10,3 +10,9 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .claude/
+.env
+.env.*
+!.env.example
+!.env.template
+.DS_Store
+Thumbs.db

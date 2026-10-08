@@ -67,6 +67,10 @@ class ArchiveTests(unittest.TestCase):
         retained.joinpath("result.json").write_bytes(b"{}")
         helper = self.bin / "nfs-viewer-as-helper"
         helper.write_bytes(b"current trusted helper")
+        binaries = [self.bin / name for name in
+                    ("nfsclient-windows-amd64.exe", "nfsclient-linux-amd64")]
+        for binary in binaries:
+            binary.write_bytes(b"current client")
         self.invoke("--apply")
         pointer = json.loads(self.pointer.read_text(encoding="utf-8"))
         destination = Path(pointer["archive"])
@@ -75,6 +79,8 @@ class ArchiveTests(unittest.TestCase):
         self.assertFalse(candidate.exists())
         self.assertEqual(retained.joinpath("result.json").read_bytes(), b"{}")
         self.assertEqual(helper.read_bytes(), b"current trusted helper")
+        for binary in binaries:
+            self.assertEqual(binary.read_bytes(), b"current client")
         manifest = json.loads(Path(pointer["manifest"]).read_text(encoding="utf-8"))
         self.assertEqual(manifest["moved"], [candidate.name])
 

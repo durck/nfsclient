@@ -4,6 +4,20 @@ User-visible changes are grouped by version and type.
 
 ## [Unreleased]
 
+### Changed
+
+- Expand the real Windows README demo to cover help, file hints, previews,
+  transfers, links, permissions and cleanup, with a slower, compact introduction;
+  document direct release downloads.
+- Record demos from a neutral local directory, reject private profile details,
+  omit absolute local paths, and wait for visible character echoes to prevent
+  burst-like command entry. Keep reading pauses below two seconds.
+
+### Fixed
+
+- Preserve current `nfsclient` binaries during local artifact archival; exclude
+  local builds, verification output and environment files from Docker contexts.
+
 ## [0.2.0] - 2026-10-08
 
 ### Changed

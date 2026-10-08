@@ -136,19 +136,51 @@ fixture selectors, so use the direct `go test` command for this opt-in smoke run
 
 Build the Windows client using the root README, then start a **fresh** disposable
 Ganesha fixture as above and wait for its grace period. The optional recorder
-requires Python with `pywinpty` (verified with 2.0.15) and uses a native Windows
-PTY with a UTF-8 console. It seeds example files, types into the interactive
+requires Python with `pywinpty` (verified with 2.0.15) and `pyte` (0.8.2), and uses
+a native Windows PTY with a UTF-8 console. It seeds example files, types into the interactive
 client, captures unchanged terminal output with observed timestamps, and checks
-the downloaded bytes. It refuses an existing output `files/` directory.
+the downloaded bytes. It refuses an existing `--work-dir` directory.
+The extended scenario runs 34 commands in a 110-column, 32-row terminal:
+help/remote working directory, navigation and Tab completion, text/hex previews, corporate/cloud
+path hints, upload/download, links, permissions, moves and cleanup. Section
+boundaries use the client's real Ctrl+L clear-screen handling. Seed files are
+explicitly synthetic examples on a disposable server; captured UI is real.
+The opening holds the connected prompt for 1.8 seconds and uses compact
+`help ls` to avoid a scrolling help dump. Each typed character must appear on
+the current terminal cursor row before the next key is sent, then remains
+visible for at least 80 ms. Reading pauses after commands are capped at 1.5
+seconds. Tab still inserts its real completion suffix.
+Use a fresh neutral `--work-dir` outside the personal Windows profile. The demo
+omits `id` and `lls`, which expose the absolute local directory. The recorder
+rejects all absolute Windows drive/UNC paths and personal profile/username/hostname
+matches before saving public media input; it does not redact recorded output.
+The recording published with the README uses the v0.2.0 release binary.
 
 ```powershell
-python -B tests/record_demo.py --binary bin/nfsclient-windows-amd64.exe --port 12049 --output bin/verification/readme-recording
-agg --font-family Consolas --font-size 16 --theme asciinema --speed 1 --idle-time-limit 60 --last-frame-duration 2 bin/verification/readme-recording/demo.cast bin/verification/readme-recording/demo.gif
+python -B tests/record_demo.py --binary bin/nfsclient-windows-amd64.exe --port 12049 --output bin/verification/readme-recording --work-dir C:/nfsclient-demo/files
+python -B tests/prepare_demo_render.py bin/verification/readme-recording/demo.cast bin/verification/readme-recording/render.cast
+agg --font-family Consolas --font-size 16 --theme asciinema --speed 1 --idle-time-limit 60 --last-frame-duration 0.1 bin/verification/readme-recording/render.cast bin/verification/readme-recording/demo.gif
+ffmpeg -i bin/verification/readme-recording/demo.gif -vf "fps=30,pad=ceil(iw/2)*2:ceil(ih/2)*2" -c:v libx264 -pix_fmt yuv420p -crf 20 -movflags +faststart bin/verification/readme-recording/demo.mp4
 ```
 
 Use [agg](https://github.com/asciinema/agg) 1.9.0 to render the captured stream.
-Inspect the animation before copying both files to `docs/assets/`. Keep recorder
+The MP4 uses a constant 30 fps for predictable player timing, pads odd pixel
+dimensions for H.264 compatibility, and preserves playback duration.
+The render-only cast coalesces erase-only ConPTY events with a redraw
+arriving within 150 ms, avoiding transient blank prompt frames. It preserves
+every output byte and retains longer intentional pauses. The published
+`demo.cast` remains the original stream with observed timestamps.
+Run `python -B tests/test_prepare_demo_render.py` and
+`python -B tests/test_record_demo.py` to check render and privacy boundaries.
+Inspect representative frames before copying `demo.cast`, `demo.gif`, and `demo.mp4` to
+`docs/assets/`; update the README duration/chapter offsets from actual evidence. Keep recorder
 evidence in ignored `bin/verification/`, and stop the disposable server afterward.
+Review `typed_inputs` in `evidence.json` for observed chapter start times and
+`terminal-output.txt` for errors, link targets and final directory contents.
+`visible_prefix_checks` records observed per-character screen states; verify
+these states also survive the render-only event coalescing before publication.
+Keep raw evidence private and remove only the freshly created demo work directory
+after confirming its resolved path is the intended neutral fixture directory.
 On every container restart, check the mapped port again if Docker assigned it.
 
 ## Other fixture prerequisites

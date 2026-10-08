@@ -1,4 +1,7 @@
 # Force LF line endings for Go source so gofmt -l passes on all platforms.
+.gitattributes text eol=lf
+.gitignore     text eol=lf
+.dockerignore  text eol=lf
 *.go    text eol=lf
 *.mod   text eol=lf
 *.sum   text eol=lf
@@ -13,4 +16,5 @@
 # Binary assets — no EOL conversion
 *.png   binary
 *.gif   binary
+*.mp4   binary
 *.cast  text eol=lf

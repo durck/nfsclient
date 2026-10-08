@@ -14,8 +14,8 @@ import stat
 
 ROOT = Path(__file__).resolve().parents[1]
 KEEP = {
-    "verification", "microsoft-ad-lab", "nfs-viewer-windows-amd64.exe",
-    "nfs-viewer-linux-amd64", "nfs-viewer-as-helper", "THIRD-PARTY-LICENSES.txt",
+    "verification", "microsoft-ad-lab", "nfsclient-windows-amd64.exe",
+    "nfsclient-linux-amd64", "nfs-viewer-as-helper", "THIRD-PARTY-LICENSES.txt",
     "ARCHIVE_LOCATION.json",
 }
 
