@@ -23,7 +23,7 @@ RELEASE_CASES = (
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--linux-container", action="store_true",
-                        help="Run Linux Go checks in a temporary golang:1.26.8 container")
+                        help="Run Linux Go checks in a temporary golang:1.26.9 container")
     args = parser.parse_args()
     target = "linux" if args.linux_container else platform.system().lower()
     if target not in ("windows", "linux"):
@@ -53,7 +53,7 @@ def main():
                    "-v", "nfsclient-go-build:/root/.cache/go-build", "-w", "/work"]
         for key, value in extra_env.items():
             command.extend(["-e", key + "=" + value])
-        return [*command, "golang:1.26.8", "go", *arguments], env
+        return [*command, "golang:1.26.9", "go", *arguments], env
 
     def run(name, command, run_env=None, cwd=ROOT, go_json=False):
         log = out / (target + "-" + name + ".log")
@@ -111,7 +111,7 @@ def main():
     run("licenses", [sys.executable, "-B", str(ROOT / "tests" / "package_licenses.py")])
     if args.linux_container:
         run("help", ["docker", "run", "--rm", "-v", str(ROOT / "bin") + ":/artifacts:ro",
-                     "golang:1.26.8", "/artifacts/" + binary_name, "--help"])
+                     "golang:1.26.9", "/artifacts/" + binary_name, "--help"])
     else:
         run("help", [str(binary), "--help"])
     release_path = "/work/bin/" + binary_name if args.linux_container else str(binary)

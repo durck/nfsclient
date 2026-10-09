@@ -2,7 +2,7 @@
 
 ## Build from source
 
-Go 1.26 is required; `go.mod` selects patched Go 1.26.8 automatically.
+Go 1.26 is required; `go.mod` selects patched Go 1.26.9 automatically.
 
 Clone the repository and run the build commands from its directory:
 
@@ -56,7 +56,7 @@ On Windows, race-test packages run sequentially (`-p=1`): journal stress tests
 perform thousands of durable flushes and can otherwise starve another package's
 subprocess crash-boundary watchdog. All tests and race instrumentation remain
 enabled; concurrency within each package is unchanged.
-Linux Go checks use temporary `golang:1.26.8` Docker containers with `--rm`,
+Linux Go checks use temporary `golang:1.26.9` Docker containers with `--rm`,
 read-only source/module mounts and a reusable build cache. Inherited NFS_/KRB5_
 fixture selectors are removed. No real NAS/domain/hardware fixture is enabled.
 Logs and summaries are written to ignored `bin/verification/`.

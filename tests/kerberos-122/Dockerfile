@@ -1,4 +1,4 @@
-FROM golang:1.26.8 AS build
+FROM golang:1.26.9 AS build
 ADD --checksum=sha256:221b3e224708c1da2a1a88b6824380593579b2254ae7d914afa14cbd5d343334 https://deb.debian.org/debian/pool/main/m/m4/m4_1.4.19-8_amd64.deb /tmp/m4.deb
 RUN dpkg-deb -x /tmp/m4.deb /
 ADD --checksum=sha256:ce6eb1f7aad18850e32d223a68f54bcbe756d74f138c8ec5460ad9d220f4d335 https://deb.debian.org/debian/pool/main/b/bison/bison_3.8.2+dfsg-1+b2_amd64.deb /tmp/bison.deb

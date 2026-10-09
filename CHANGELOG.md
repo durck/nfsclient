@@ -26,6 +26,8 @@ User-visible changes are grouped by version and type.
 
 ### Fixed
 
+- Build with Go 1.26.9, including the matching Linux test containers, to pick up
+  standard-library security fixes and keep the vulnerability check passing.
 - Preserve current `nfsclient` binaries during local artifact archival; exclude
   local builds, verification output and environment files from Docker contexts.
 

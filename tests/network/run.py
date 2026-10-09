@@ -77,7 +77,7 @@ def main():
                        '-v', 'nfs-viewer-go-build:/root/.cache/go-build', '-w', '/work']
                 for key, value in values.items():
                     run += ['-e', key + '=' + value]
-                run += ['golang:1.26.8', *test]
+                run += ['golang:1.26.9', *test]
             log = output / (target + '-native.log')
             with log.open('w', encoding='utf-8') as stream:
                 result = subprocess.run(run, cwd=ROOT, env={**env, **values}, stdout=stream,
