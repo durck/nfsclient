@@ -29,7 +29,7 @@ var scanHelpGroups = []startupHelpGroup{
 	{"targets", "Targets and connection", []string{"file", "dns-domain", "dns-server", "nfs-version", "timeout", "concurrency", "portmap-port", "nfs-port", "mount-port"}},
 	{"discovery", "Discovery and checks", []string{"path", "paths-file", "recursive", "depth", "max-entries", "discovery-timeout", "no-squash-check", "no-escape-check"}},
 	{"auth", "Identity and Kerberos authentication", []string{"uid", "gid", "groups", "sec", "principal", "keytab", "ccache", "kcm-socket", "password", "domain", "krb5-config", "spn", "target-spn"}},
-	{"output", "Output and help", []string{"output", "help", "help-all"}},
+	{"output", "Output and help", []string{"output", "color", "help", "help-all"}},
 }
 
 func helpAllRequested(cmd *cobra.Command) bool {
@@ -41,26 +41,33 @@ func installStartupHelp(root *cobra.Command, out io.Writer, colorMode *string, n
 	root.Flags().Bool("help-all", false, "Show all startup flags grouped by topic")
 	defaultHelp := root.HelpFunc()
 	root.SetHelpFunc(func(cmd *cobra.Command, args []string) {
-		if cmd != root {
-			defaultHelp(cmd, args)
-			return
-		}
 		ansi, restore := enableANSI(out)
 		defer restore()
 		color := useColor(*colorMode, ansi)
+		if cmd != root {
+			printStyledHelp(out, color, func(w io.Writer) {
+				previous := cmd.OutOrStdout()
+				cmd.SetOut(w)
+				defer cmd.SetOut(previous)
+				defaultHelp(cmd, args)
+			})
+			return
+		}
 		if !*noBanner {
 			printBanner(out, color)
 		}
-		if helpAllRequested(root) {
-			printStartupTopic(root, out, "all")
-			return
-		}
-		fmt.Fprintln(out, "Browse NFS shares without mounting them. Windows + Linux.\n\nUsage:\n  nfsclient HOST [flags]\n  nfsclient <command> [flags]")
-		fmt.Fprintln(out, "\nCommon flags:")
-		printSelectedFlags(out, root, []string{"export", "nfs-version", "sec", "uid", "gid", "timeout", "command", "batch", "help", "help-all"})
-		fmt.Fprintln(out, "\nCommands:\n  scan           Discover exports and check access\n  offload-state  Inspect or acknowledge local offload evidence\n  block-state    Inspect or acknowledge local block evidence\n  lock-state     Inspect durable lock evidence offline\n  completion     Generate terminal completion scripts")
-		fmt.Fprintln(out, "\nExamples:\n  nfsclient nfs.example.test\n  nfsclient nfs.example.test -e /data -c 'ls'\n  nfsclient scan 192.168.1.0/24")
-		fmt.Fprintln(out, "\nDetailed help: nfsclient help TOPIC\n  connection  auth  tls  network  session  recovery  advanced  all\n  nfsclient help scan       All scan options\n  nfsclient help shell [COMMAND|TOPIC]   Shell help without connecting\n  nfsclient help COMMAND    Command help (nested commands also work)\n  nfsclient completion SHELL --help   Install for bash, zsh, fish or powershell\n\nIn the shell: help, help TOPIC, or help COMMAND")
+		printStyledHelp(out, color, func(out io.Writer) {
+			if helpAllRequested(root) {
+				printStartupTopic(root, out, "all")
+				return
+			}
+			fmt.Fprintln(out, "Browse NFS shares without mounting them. Windows + Linux.\n\nUsage:\n  nfsclient HOST [flags]\n  nfsclient <command> [flags]")
+			fmt.Fprintln(out, "\nCommon flags:")
+			printSelectedFlags(out, root, []string{"export", "nfs-version", "sec", "uid", "gid", "timeout", "command", "batch", "help", "help-all"})
+			fmt.Fprintln(out, "\nCommands:\n  scan           Discover exports and check access\n  offload-state  Inspect or acknowledge local offload evidence\n  block-state    Inspect or acknowledge local block evidence\n  lock-state     Inspect durable lock evidence offline\n  completion     Generate terminal completion scripts")
+			fmt.Fprintln(out, "\nExamples:\n  nfsclient nfs.example.test\n  nfsclient nfs.example.test -e /data -c 'ls'\n  nfsclient scan 192.168.1.0/24")
+			fmt.Fprintln(out, "\nDetailed help: nfsclient help TOPIC\n  connection  auth  tls  network  session  recovery  advanced  all\n  nfsclient help scan       All scan options\n  nfsclient help shell [COMMAND|TOPIC]   Shell help without connecting\n  nfsclient help COMMAND    Command help (nested commands also work)\n  nfsclient completion SHELL --help   Install for bash, zsh, fish or powershell\n\nIn the shell: help, help TOPIC, or help COMMAND")
+		})
 	})
 	root.SetHelpCommand(&cobra.Command{
 		Use: "help [topic | command...]", Short: "Show startup topics or command help",
@@ -69,6 +76,8 @@ func installStartupHelp(root *cobra.Command, out io.Writer, colorMode *string, n
 			if len(args) == 0 {
 				return root.Help()
 			}
+			color, restore := helpColor(cmd, out)
+			defer restore()
 			if args[0] == "shell" {
 				if len(args) > 2 {
 					return fmt.Errorf("usage: nfsclient help shell [COMMAND|TOPIC]")
@@ -77,20 +86,26 @@ func installStartupHelp(root *cobra.Command, out io.Writer, colorMode *string, n
 				if len(args) == 2 {
 					topic = args[1]
 				}
-				if err := (&Shell{Out: out}).printCommandHelp(topic); err != nil {
+				if err := (&Shell{Out: out, Color: color}).printCommandHelp(topic); err != nil {
 					return fmt.Errorf("%w; use nfsclient help shell", err)
 				}
 				return nil
 			}
-			if len(args) == 1 && printStartupTopic(root, out, args[0]) {
-				return nil
+			if len(args) == 1 {
+				found := false
+				printStyledHelp(out, color, func(w io.Writer) {
+					found = printStartupTopic(root, w, args[0])
+				})
+				if found {
+					return nil
+				}
 			}
 			target, rest, err := root.Find(args)
 			if err != nil || target == root || len(rest) != 0 {
 				return fmt.Errorf("unknown help topic or command %q; use nfsclient help (topics: connection, auth, tls, network, session, recovery, advanced, all)", strings.Join(args, " "))
 			}
 			if target.Name() == "scan" {
-				printScanHelp(target, out, true)
+				printStyledHelp(out, color, func(w io.Writer) { printScanHelp(target, w, true) })
 				return nil
 			}
 			return target.Help()
@@ -148,7 +163,7 @@ func printSelectedFlags(out io.Writer, cmd *cobra.Command, names []string) {
 	selected := pflag.NewFlagSet("help", pflag.ContinueOnError)
 	selected.SortFlags = false
 	for _, name := range names {
-		if flag := cmd.Flags().Lookup(name); flag != nil {
+		if flag := cmd.Flag(name); flag != nil {
 			selected.AddFlag(flag)
 		}
 	}
@@ -158,7 +173,9 @@ func printSelectedFlags(out io.Writer, cmd *cobra.Command, names []string) {
 func installScanHelp(cmd *cobra.Command, out io.Writer) {
 	cmd.Flags().Bool("help-all", false, "Show all scan flags grouped by topic")
 	cmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
-		printScanHelp(cmd, out, helpAllRequested(cmd))
+		color, restore := helpColor(cmd, out)
+		defer restore()
+		printStyledHelp(out, color, func(w io.Writer) { printScanHelp(cmd, w, helpAllRequested(cmd)) })
 	})
 	args, run := cmd.Args, cmd.RunE
 	cmd.Args = func(cmd *cobra.Command, values []string) error {

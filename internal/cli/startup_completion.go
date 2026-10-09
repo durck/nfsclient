@@ -22,7 +22,7 @@ var startupCompletionValues = map[string][]string{
 func installStartupCompletions(cmd *cobra.Command) {
 	// Hosts and remote targets must never fall back to local filenames.
 	cmd.ValidArgsFunction = cobra.NoFileCompletions
-	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
+	cmd.LocalFlags().VisitAll(func(flag *pflag.Flag) {
 		values, enum := startupCompletionValues[flag.Name]
 		if flag.Value.Type() == "bool" {
 			values, enum = []string{"true", "false"}, true

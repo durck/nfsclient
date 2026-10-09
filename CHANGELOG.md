@@ -4,6 +4,13 @@ User-visible changes are grouped by version and type.
 
 ## [Unreleased]
 
+### Added
+
+- Semantic colors for startup, topic, subcommand and interactive shell help:
+  cyan commands/flags, warm arguments and muted syntax, with unchanged wrapping.
+  Share `--color=auto|always|never` across help routes and honor `NO_COLOR`,
+  `TERM=dumb` and redirected output in automatic mode.
+
 ### Changed
 
 - Shorten the README around installation and first use; consolidate documentation

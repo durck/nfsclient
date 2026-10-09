@@ -85,6 +85,14 @@ nfsclient help shell gettree
 Inside the client, use `help`, `help transfer`, `help gettree`, or `gettree --help`.
 `help all` prints the full shell reference. Standalone `COMMAND -h` also works.
 The same reference is available before connecting via `nfsclient help shell`.
+
+Help uses cyan for headings, command names and flags, warm yellow for arguments
+and example values, and gray for syntax separators and keyboard hints. Descriptions
+stay neutral. Colors follow the same policy as listings: `--color=auto` colors
+terminal output, `--color=always` forces colors, and `--color=never` disables them.
+Automatic colors are also disabled by `NO_COLOR`, `TERM=dumb`, or redirected output.
+The color option works with every help route, for example
+`nfsclient help shell gettree --color=always` and `nfsclient scan --help --color=never`.
 Tree-transfer options may precede or follow paths. For `ls`, `stat`, inspection
 and tree-transfer commands, `--` ends options so a filename such as `--offline`
 can be used literally. Other commands show their required option positions in

@@ -93,7 +93,7 @@ func NewCommand(in io.Reader, out, errOut io.Writer) *cobra.Command {
 	f.BoolVar(&batch, "batch", false, "Read commands from stdin; stop on the first error")
 	f.StringArrayVarP(&lines, "command", "c", nil, "Run one command; repeat to execute a sequence and exit")
 	f.StringVar(&history, "history", "", "Optional history file (default: memory only)")
-	f.StringVar(&colorMode, "color", "auto", "Color output: auto, always, never (auto honors NO_COLOR)")
+	cmd.PersistentFlags().StringVar(&colorMode, "color", "auto", "Color output: auto, always, never (auto honors NO_COLOR)")
 	f.StringVar(&progressMode, "progress", "auto", "Transfer progress: auto, always, never (written to stderr)")
 	f.BoolVar(&noBanner, "no-banner", false, "Hide the startup/help banner")
 	installStartupHelp(cmd, out, &colorMode, &noBanner)

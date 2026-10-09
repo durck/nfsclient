@@ -65,7 +65,7 @@ func TestStartupHelpFlagCoverage(t *testing.T) {
 			for _, group := range tc.groups {
 				for _, name := range group.flags {
 					assigned[name]++
-					if tc.cmd.Flags().Lookup(name) == nil {
+					if tc.cmd.Flag(name) == nil {
 						t.Errorf("help documents nonexistent flag --%s", name)
 					}
 				}

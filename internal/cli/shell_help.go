@@ -50,21 +50,30 @@ func shellHelpLine(out *strings.Builder, text, indent string) {
 func (s *Shell) printCommandHelp(topic string) error {
 	var out strings.Builder
 	heading := func(title string) {
-		out.WriteString("\n  " + paint(s.Color, bold, title) + "\n")
+		out.WriteString("\n  " + paint(s.Color, bold+";"+cyan, title) + "\n")
+	}
+	line := func(text, indent string, syntax bool) {
+		var wrapped strings.Builder
+		shellHelpLine(&wrapped, text, indent)
+		if syntax {
+			out.WriteString(colorHelpSyntax(wrapped.String(), s.Color))
+		} else {
+			out.WriteString(colorHelpProse(wrapped.String(), s.Color))
+		}
 	}
 	show := func(command shellCommandSpec) {
 		for _, usage := range command.Usage {
-			shellHelpLine(&out, usage, "  ")
+			line(usage, "  ", true)
 		}
-		shellHelpLine(&out, command.Summary, "    ")
+		line(command.Summary, "    ", false)
 		for _, note := range command.Notes {
-			shellHelpLine(&out, note, "    ")
+			line(note, "    ", false)
 		}
 		out.WriteByte('\n')
 	}
 	if topic == "" {
 		heading("SHELL COMMANDS")
-		out.WriteString("  help COMMAND  |  help TOPIC  |  help all  |  COMMAND --help\n")
+		out.WriteString(colorHelpSyntax("  help COMMAND  |  help TOPIC  |  help all  |  COMMAND --help\n", s.Color))
 		out.WriteString("  [] optional; | alternatives; ... repeatable. Quote paths containing spaces.\n")
 		for _, group := range shellHelpGroups {
 			heading(group.name + " - " + group.summary)
@@ -75,16 +84,20 @@ func (s *Shell) printCommandHelp(topic string) error {
 					names = append(names, command.Aliases...)
 				}
 			}
-			shellHelpLine(&out, strings.Join(names, "  "), "    ")
+			line(strings.Join(names, "  "), "    ", true)
 		}
 		heading("QUICK START")
-		out.WriteString("  exports                 Discover available resources\n")
-		out.WriteString("  use /export             Select a remote export\n")
-		out.WriteString("  ls [PATH]               List remote files\n")
-		out.WriteString("  get REMOTE [LOCAL]      Download a file\n")
-		out.WriteString("  put LOCAL [REMOTE]      Upload a file\n")
-		out.WriteString("  help getpnfs            View advanced transfer options\n")
-		out.WriteString("\n  Tab complete  |  Up/Down history  |  Ctrl+C twice quit\n")
+		for _, row := range []string{
+			"  exports                 Discover available resources\n",
+			"  use /export             Select a remote export\n",
+			"  ls [PATH]               List remote files\n",
+			"  get REMOTE [LOCAL]      Download a file\n",
+			"  put LOCAL [REMOTE]      Upload a file\n",
+			"  help getpnfs            View advanced transfer options\n",
+		} {
+			out.WriteString(colorHelpColumns(row, s.Color))
+		}
+		out.WriteString(paint(s.Color, muted, "\n  Tab complete  |  Up/Down history  |  Ctrl+C twice quit\n"))
 		out.WriteString("  Conflicts offer rename / cancel; overwrite where supported.\n\n")
 	} else {
 		found := false
